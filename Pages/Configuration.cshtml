@@ -1,0 +1,600 @@
+@page
+@{
+    ViewData["Title"] = "API Configuration Management";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-cogs me-2 text-primary"></i>API Configuration Management</h2>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="createNewConfig()">
+                    <i class="fas fa-plus me-1"></i> New Configuration
+                </button>
+                <button class="btn btn-outline-primary" onclick="refreshConfigurations()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Testing Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-play-circle me-2"></i>API Testing Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>System Status:</strong> <span id="systemStatus" class="badge bg-secondary">Loading...</span></p>
+                        <p><strong>Active Configurations:</strong> <span id="activeConfigCount">0</span></p>
+                        <p><strong>Total API Requests:</strong> <span id="totalRequests">0</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="btn-group w-100">
+                            <button id="startAllBtn" class="btn btn-success" onclick="startAllConfigurations()">
+                                <i class="fas fa-play me-1"></i> Start All Testing
+                            </button>
+                            <button id="stopAllBtn" class="btn btn-danger" onclick="stopAllConfigurations()">
+                                <i class="fas fa-stop me-1"></i> Stop All Testing
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration List -->
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-list me-2 text-success"></i>API Configurations
+        </h5>
+    </div>
+    <div class="card-body">
+        <div id="configurationsContainer">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading configurations...</span>
+                </div>
+                <p class="text-muted mt-2">Loading configurations...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Editor Modal -->
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i><span id="modalTitle">Edit Configuration</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="configForm">
+                    <input type="hidden" id="configId">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Configuration Name</label>
+                            <input type="text" id="configName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">API Endpoint</label>
+                            <input type="url" id="configEndpoint" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Bearer Token</label>
+                            <input type="text" id="configToken" class="form-control">
+                            <div class="form-text">Leave empty if no authentication required</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Delay (ms)</label>
+                                    <input type="number" id="configDelay" class="form-control" min="1000" step="500" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Max Iterations</label>
+                                    <input type="number" id="configMaxIterations" class="form-control" min="1" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" id="configTrustSsl" class="form-check-input">
+                                <label class="form-check-label fw-semibold" for="configTrustSsl">
+                                    Trust SSL Certificate (bypass SSL validation)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Request Template</label>
+                        <textarea id="configTemplate" class="form-control" rows="8" required></textarea>
+                        <div class="form-text">
+                            Use placeholder variables like {{user_profile}}, {{amount}}, {{random}}, etc.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="testConfiguration()">
+                    <i class="fas fa-vial me-1"></i> Test Connection
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveConfiguration()">
+                    <i class="fas fa-save me-1"></i> Save Configuration
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<style>
+    .config-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        transition: all 0.2s ease;
+    }
+    .config-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .config-card.active {
+        border-color: #28a745;
+        background-color: #f8fff9;
+    }
+    .config-card.inactive {
+        border-color: #6c757d;
+        background-color: #f8f9fa;
+    }
+    .endpoint-url {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        word-break: break-all;
+    }
+    .test-result {
+        font-size: 0.85rem;
+        margin-top: 5px;
+    }
+</style>
+
+<script>
+    let configurations = [];
+    let systemStatus = { isRunning: false };
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSystemStatus();
+        loadConfigurations();
+        
+        // Setup periodic refresh
+        setInterval(loadSystemStatus, 5000); // Every 5 seconds
+        setInterval(loadConfigurations, 10000); // Every 10 seconds
+    });
+
+    // Load system status
+    async function loadSystemStatus() {
+        try {
+            const response = await fetch('/api/configuration/status');
+            if (response.ok) {
+                systemStatus = await response.json();
+                updateSystemStatusUI();
+            }
+        } catch (error) {
+            console.error('Error loading system status:', error);
+        }
+    }
+
+    // Update system status UI
+    function updateSystemStatusUI() {
+        const statusElement = document.getElementById('systemStatus');
+        const startBtn = document.getElementById('startAllBtn');
+        const stopBtn = document.getElementById('stopAllBtn');
+        
+        if (systemStatus.isRunning) {
+            statusElement.className = 'badge bg-success';
+            statusElement.textContent = 'Running';
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        } else {
+            statusElement.className = 'badge bg-secondary';
+            statusElement.textContent = 'Stopped';
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+    }
+
+    // Load configurations
+    async function loadConfigurations() {
+        try {
+            const response = await fetch('/api/configuration');
+            if (response.ok) {
+                configurations = await response.json();
+                renderConfigurations();
+                updateCounts();
+            }
+        } catch (error) {
+            console.error('Error loading configurations:', error);
+            showError('Failed to load configurations');
+        }
+    }
+
+    // Update counts
+    function updateCounts() {
+        const activeCount = configurations.filter(c => c.IsActive || c.isActive).length;
+        const totalRequests = configurations.reduce((sum, c) => sum + (c.RequestLogsCount || c.requestLogsCount || 0), 0);
+        
+        document.getElementById('activeConfigCount').textContent = activeCount;
+        document.getElementById('totalRequests').textContent = totalRequests;
+    }
+
+    // Render configurations
+    function renderConfigurations() {
+        const container = document.getElementById('configurationsContainer');
+        
+        if (configurations.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No configurations found</h5>
+                    <button class="btn btn-primary" onclick="createNewConfig()">
+                        <i class="fas fa-plus me-1"></i> Create First Configuration
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        const html = configurations.map(config => {
+            const isActive = config.IsActive || config.isActive;
+            const name = config.Name || config.name;
+            const endpoint = config.ApiEndpoint || config.apiEndpoint;
+            const requestCount = config.RequestLogsCount || config.requestLogsCount || 0;
+            const lastRequest = config.LastRequestTime || config.lastRequestTime;
+            const maxIterations = config.MaxIterations || config.maxIterations || 0;
+            const delay = config.DelayBetweenRequests || config.delayBetweenRequests || 0;
+            
+            return `
+                <div class="config-card ${isActive ? 'active' : 'inactive'}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-${isActive ? 'play-circle text-success' : 'pause-circle text-secondary'} me-2"></i>
+                            ${name}
+                        </h6>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="editConfiguration(${config.Id || config.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-${isActive ? 'danger' : 'success'}" onclick="${isActive ? 'stopConfiguration' : 'startConfiguration'}(${config.Id || config.id})">
+                                <i class="fas fa-${isActive ? 'stop' : 'play'}"></i>
+                            </button>
+                            <button class="btn btn-outline-info" onclick="testSingleConfiguration(${config.Id || config.id})">
+                                <i class="fas fa-vial"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteConfiguration(${config.Id || config.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-1"><strong>Endpoint:</strong></p>
+                                <p class="endpoint-url text-muted mb-2">${endpoint}</p>
+                                <p class="mb-1"><strong>Settings:</strong> ${delay}ms delay, max ${maxIterations} iterations</p>
+                                <p class="mb-0"><strong>Requests Made:</strong> ${requestCount} | <strong>Last Request:</strong> ${lastRequest === '0001-01-01T00:00:00.0000000' ? 'Never' : new Date(lastRequest).toLocaleString()}</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <span class="badge bg-${isActive ? 'success' : 'secondary'} mb-2">
+                                    ${isActive ? 'Active' : 'Inactive'}
+                                </span>
+                                <br>
+                                ${config.TrustSslCertificate || config.trustSslCertificate ? '<span class="badge bg-warning">SSL Bypass</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = html;
+    }
+
+    // Start configuration
+    async function startConfiguration(id) {
+        try {
+            const response = await fetch(`/api/configuration/${id}/start`, { method: 'POST' });
+            if (response.ok) {
+                showSuccess('Configuration started successfully');
+                loadConfigurations();
+                loadSystemStatus();
+            } else {
+                throw new Error('Failed to start configuration');
+            }
+        } catch (error) {
+            showError('Failed to start configuration: ' + error.message);
+        }
+    }
+
+    // Stop configuration
+    async function stopConfiguration(id) {
+        try {
+            const response = await fetch(`/api/configuration/${id}/stop`, { method: 'POST' });
+            if (response.ok) {
+                showSuccess('Configuration stopped successfully');
+                loadConfigurations();
+            } else {
+                throw new Error('Failed to stop configuration');
+            }
+        } catch (error) {
+            showError('Failed to stop configuration: ' + error.message);
+        }
+    }
+
+    // Start all configurations
+    async function startAllConfigurations() {
+        try {
+            const response = await fetch('/api/configuration/start-all', { method: 'POST' });
+            if (response.ok) {
+                showSuccess('All configurations started successfully');
+                loadConfigurations();
+                loadSystemStatus();
+            } else {
+                throw new Error('Failed to start all configurations');
+            }
+        } catch (error) {
+            showError('Failed to start all configurations: ' + error.message);
+        }
+    }
+
+    // Stop all configurations
+    async function stopAllConfigurations() {
+        try {
+            const response = await fetch('/api/configuration/stop-all', { method: 'POST' });
+            if (response.ok) {
+                showSuccess('All configurations stopped successfully');
+                loadConfigurations();
+                loadSystemStatus();
+            } else {
+                throw new Error('Failed to stop all configurations');
+            }
+        } catch (error) {
+            showError('Failed to stop all configurations: ' + error.message);
+        }
+    }
+
+    // Test single configuration
+    async function testSingleConfiguration(id) {
+        showInfo('Testing configuration...');
+        
+        try {
+            // First activate the configuration
+            await fetch(`/api/configuration/${id}/start`, { method: 'POST' });
+            
+            // Wait a moment for the test to run
+            setTimeout(async () => {
+                try {
+                    await fetch(`/api/configuration/${id}/stop`, { method: 'POST' });
+                    showSuccess('Test completed. Check the reports page for results.');
+                    loadConfigurations();
+                } catch (error) {
+                    console.error('Error stopping test:', error);
+                }
+            }, 3000);
+            
+        } catch (error) {
+            showError('Failed to test configuration: ' + error.message);
+        }
+    }
+
+    // Create new configuration
+    function createNewConfig() {
+        document.getElementById('modalTitle').textContent = 'Create New Configuration';
+        document.getElementById('configForm').reset();
+        document.getElementById('configId').value = '';
+        
+        // Set default values for fraud detection API
+        document.getElementById('configName').value = 'Fraud Detection API';
+        document.getElementById('configEndpoint').value = 'https://10.10.110.107:443/validate-chat';
+        document.getElementById('configToken').value = 'sesoqefHnKglaJKJwRtE4DZW6aqDLGxNRRu/qhiCUug=';
+        document.getElementById('configDelay').value = '2000';
+        document.getElementById('configMaxIterations').value = '10';
+        document.getElementById('configTrustSsl').checked = true;
+        
+        document.getElementById('configTemplate').value = `{
+  "model": "fraud-detector:stable",
+  "messages": [
+    {
+      "role": "user",
+      "content": "User Profile Summary:\\n- {{user_profile}}.\\n- {{user_activity}}.\\n\\nTransaction Context:\\n- Amount Risk Score: {{amount_risk_score}}\\n- Amount Z-Score: {{amount_z_score}}\\n- High Amount Flag: {{high_amount_flag}}\\n\\nTransaction Details:\\n- CNIC: {{random_cnic}}\\n- FromAccount: {{random_account}}\\n- FromName: {{from_name}}\\n- ToAccount: {{random_iban}}\\n- ToName: {{to_name}}\\n- Amount: {{random_amount}}\\n- ActivityCode: {{activity_code}}\\n- UserType: {{user_type}}\\n- TransactionDateTime: {{transaction_datetime}}\\n- UserId: {{user_id}}"
+    }
+  ],
+  "stream": false
+}`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('configModal'));
+        modal.show();
+    }
+
+    // Edit configuration
+    async function editConfiguration(id) {
+        try {
+            const response = await fetch(`/api/configuration/${id}`);
+            if (response.ok) {
+                const config = await response.json();
+                
+                document.getElementById('modalTitle').textContent = 'Edit Configuration';
+                document.getElementById('configId').value = config.Id || config.id;
+                document.getElementById('configName').value = config.Name || config.name;
+                document.getElementById('configEndpoint').value = config.ApiEndpoint || config.apiEndpoint;
+                document.getElementById('configToken').value = config.BearerToken || config.bearerToken || '';
+                document.getElementById('configDelay').value = config.DelayBetweenRequests || config.delayBetweenRequests;
+                document.getElementById('configMaxIterations').value = config.MaxIterations || config.maxIterations;
+                document.getElementById('configTrustSsl').checked = config.TrustSslCertificate || config.trustSslCertificate;
+                document.getElementById('configTemplate').value = config.RequestTemplate || config.requestTemplate;
+                
+                const modal = new bootstrap.Modal(document.getElementById('configModal'));
+                modal.show();
+            } else {
+                throw new Error('Failed to load configuration');
+            }
+        } catch (error) {
+            showError('Failed to load configuration: ' + error.message);
+        }
+    }
+
+    // Save configuration
+    async function saveConfiguration() {
+        const configId = document.getElementById('configId').value;
+        const isEdit = configId !== '';
+        
+        const configData = {
+            Id: isEdit ? parseInt(configId) : 0,
+            Name: document.getElementById('configName').value,
+            ApiEndpoint: document.getElementById('configEndpoint').value,
+            BearerToken: document.getElementById('configToken').value || null,
+            DelayBetweenRequests: parseInt(document.getElementById('configDelay').value),
+            MaxIterations: parseInt(document.getElementById('configMaxIterations').value),
+            TrustSslCertificate: document.getElementById('configTrustSsl').checked,
+            RequestTemplate: document.getElementById('configTemplate').value,
+            IsActive: false
+        };
+
+        try {
+            const url = isEdit ? `/api/configuration/${configId}` : '/api/configuration';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(configData)
+            });
+
+            if (response.ok) {
+                showSuccess(`Configuration ${isEdit ? 'updated' : 'created'} successfully`);
+                bootstrap.Modal.getInstance(document.getElementById('configModal')).hide();
+                loadConfigurations();
+            } else {
+                throw new Error(`Failed to ${isEdit ? 'update' : 'create'} configuration`);
+            }
+        } catch (error) {
+            showError(`Failed to ${isEdit ? 'update' : 'create'} configuration: ` + error.message);
+        }
+    }
+
+    // Test configuration connection
+    async function testConfiguration() {
+        const endpoint = document.getElementById('configEndpoint').value;
+        const token = document.getElementById('configToken').value;
+        const template = document.getElementById('configTemplate').value;
+        
+        if (!endpoint) {
+            showError('Please enter an API endpoint');
+            return;
+        }
+
+        showInfo('Testing connection...');
+        
+        try {
+            // Create a simple test payload
+            const testPayload = template.replace(/\{\{[^}]+\}\}/g, 'test-value');
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: headers,
+                body: testPayload,
+                signal: AbortSignal.timeout(10000) // 10 second timeout
+            });
+            
+            if (response.ok) {
+                showSuccess(`Connection test successful! Status: ${response.status}`);
+            } else {
+                showWarning(`Connection responded with status: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                showError('Connection test timed out');
+            } else {
+                showError('Connection test failed: ' + error.message);
+            }
+        }
+    }
+
+    // Delete configuration
+    async function deleteConfiguration(id) {
+        if (!confirm('Are you sure you want to delete this configuration? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/configuration/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                showSuccess('Configuration deleted successfully');
+                loadConfigurations();
+            } else {
+                throw new Error('Failed to delete configuration');
+            }
+        } catch (error) {
+            showError('Failed to delete configuration: ' + error.message);
+        }
+    }
+
+    // Refresh configurations
+    function refreshConfigurations() {
+        loadSystemStatus();
+        loadConfigurations();
+        showInfo('Configurations refreshed');
+    }
+
+    // Toast notifications
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} position-fixed`;
+        toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+        toast.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check' : type === 'danger' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+            ${message}
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 5000);
+    }
+
+    function showSuccess(message) { showToast(message, 'success'); }
+    function showError(message) { showToast(message, 'danger'); }
+    function showWarning(message) { showToast(message, 'warning'); }
+    function showInfo(message) { showToast(message, 'info'); }
+</script>
+}

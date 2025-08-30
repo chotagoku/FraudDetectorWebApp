@@ -1,0 +1,112 @@
+@page "/Account/Login"
+@model FraudDetectorWebApp.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Fraud Detector Pro</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="~/css/auth.css" />
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-left">
+            <i class="fas fa-shield-alt brand-logo"></i>
+            <h1 class="h2 mb-3">Fraud Detector Pro</h1>
+            <p class="lead mb-4">Advanced fraud detection and API testing platform</p>
+            <div class="mt-4">
+                <div class="d-flex justify-content-center gap-3 text-center">
+                    <div>
+                        <i class="fas fa-lock fa-2x mb-2"></i>
+                        <p class="small">Secure</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-chart-line fa-2x mb-2"></i>
+                        <p class="small">Analytics</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-shield-check fa-2x mb-2"></i>
+                        <p class="small">Protected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="login-right">
+            <div class="login-form-header">
+                <h2>Welcome Back</h2>
+                <p>Please sign in to your account</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-floating">
+                    <input type="email" class="form-control" id="email" placeholder="" required>
+                    <i class="fas fa-envelope form-icon"></i>
+                    <label for="email">Email Address</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="password" placeholder="" required>
+                    <i class="fas fa-lock form-icon"></i>
+                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                    </button>
+                    <label for="password">Password</label>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">
+                            Remember me
+                        </label>
+                    </div>
+                    <a href="#" class="text-muted text-decoration-none small">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-login w-100">
+                    <span class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                    <span class="button-text">Sign In</span>
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>New to Fraud Detector Pro?</span>
+            </div>
+
+            <div class="register-link">
+                <a href="/Account/Register">Create your account here</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/auth.js"></script>
+    
+    <script>
+        // Ensure labels work immediately
+        document.querySelectorAll('.form-floating input').forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.value.trim() !== '') {
+                    this.classList.add('has-value');
+                } else {
+                    this.classList.remove('has-value');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

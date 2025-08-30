@@ -1,0 +1,7 @@
+HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json; charset=utf-8
+Date: Fri, 29 Aug 2025 08:05:17 GMT
+Server: Kestrel
+Transfer-Encoding: chunked
+
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"$":["'\\' is an invalid start of a property name. Expected a '\"'. Path: $ | LineNumber: 0 | BytePositionInLine: 1."],"configuration":["The configuration field is required."]},"traceId":"00-6ff1f0dad1ba90906aa4debd7e32069c-a6d6a59bc28b268e-00"}

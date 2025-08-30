@@ -1,0 +1,167 @@
+@page "/Account/Register"
+@model FraudDetectorWebApp.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - Fraud Detector Pro</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="~/css/auth.css" />
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-left">
+            <i class="fas fa-shield-alt brand-logo"></i>
+            <h1 class="h2 mb-3">Join Fraud Detector Pro</h1>
+            <p class="lead mb-4">Start protecting your business with advanced fraud detection</p>
+            <div class="mt-4">
+                <div class="d-flex justify-content-center gap-3 text-center">
+                    <div>
+                        <i class="fas fa-users fa-2x mb-2"></i>
+                        <p class="small">10,000+ Users</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-shield-check fa-2x mb-2"></i>
+                        <p class="small">99.9% Uptime</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-globe fa-2x mb-2"></i>
+                        <p class="small">Global Coverage</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="register-right">
+            <div class="register-form-header">
+                <h2>Create Your Account</h2>
+                <p>Get started with your free account today</p>
+            </div>
+
+            <form id="registerForm">
+                <div class="form-row">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="firstName" placeholder="" required>
+                        <i class="fas fa-user form-icon"></i>
+                        <label for="firstName">First Name</label>
+                    </div>
+
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="lastName" placeholder="" required>
+                        <i class="fas fa-user form-icon"></i>
+                        <label for="lastName">Last Name</label>
+                    </div>
+                </div>
+
+                <div class="form-floating">
+                    <input type="email" class="form-control" id="email" placeholder="" required>
+                    <i class="fas fa-envelope form-icon"></i>
+                    <label for="email">Email Address</label>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-floating">
+                        <input type="tel" class="form-control" id="phone" placeholder="">
+                        <i class="fas fa-phone form-icon"></i>
+                        <label for="phone">Phone Number (Optional)</label>
+                    </div>
+
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="company" placeholder="">
+                        <i class="fas fa-building form-icon"></i>
+                        <label for="company">Company (Optional)</label>
+                    </div>
+                </div>
+
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="password" placeholder="" required>
+                    <i class="fas fa-lock form-icon"></i>
+                    <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                        <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                    </button>
+                    <label for="password">Password</label>
+                </div>
+                <div id="passwordStrength" class="password-strength"></div>
+
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="confirmPassword" placeholder="" required>
+                    <i class="fas fa-lock form-icon"></i>
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')">
+                        <i class="fas fa-eye" id="confirmPasswordToggleIcon"></i>
+                    </button>
+                    <label for="confirmPassword">Confirm Password</label>
+                </div>
+
+                <div class="password-requirements">
+                    <h6 class="mb-2">Password Requirements:</h6>
+                    <ul id="passwordRequirements">
+                        <li id="req-length">At least 8 characters long</li>
+                        <li id="req-uppercase">Contains uppercase letter</li>
+                        <li id="req-lowercase">Contains lowercase letter</li>
+                        <li id="req-number">Contains a number</li>
+                        <li id="req-special">Contains special character</li>
+                    </ul>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="agreeTerms" required>
+                    <label class="form-check-label" for="agreeTerms">
+                        I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-register w-100">
+                    <span class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                    <span class="button-text">Create Account</span>
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>Already have an account?</span>
+            </div>
+
+            <div class="login-link">
+                <a href="/Account/Login">Sign in here</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/auth.js"></script>
+    
+    <script>
+        // Additional immediate functionality for floating labels
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pre-populate email field with test data if needed
+            const emailField = document.getElementById('email');
+            if (emailField && emailField.value) {
+                emailField.classList.add('has-value');
+            }
+        });
+        
+        // Ensure labels work immediately
+        document.querySelectorAll('.form-floating input').forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.value.trim() !== '') {
+                    this.classList.add('has-value');
+                } else {
+                    this.classList.remove('has-value');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

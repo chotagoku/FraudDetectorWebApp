@@ -1,0 +1,10 @@
+{
+  "model": "fraud-detector:stable",
+  "messages": [
+    {
+      "role": "user",
+      "content": "User Profile Summary:\n- Regular grocery trader.\n- Today made 5 transactions.\n\nTransaction Context:\n- Amount Risk Score: 7\n- Amount Z-Score: 2.5\n- High Amount Flag: Yes\n- New Activity Code: No\n- New NewFrom Account: Yes\n- New To Account: No\n- New To City: No\n- Outside Usual Day: Yes\n\nWatchlist Indicators:\n- FromAccount: No\n- FromName: No\n- ToAccount: No\n- ToName: No\n- ToBank: No\n- IPAddress: No\n\nTransaction Details:\n- CNIC: CN4210123456789\n- FromAccount: 1063123456789\n- FromName: TEST MERCHANT\n- ToAccount: PK12TEST001234567890123456\n- ToName: TEST RECIPIENT\n- ToBank: TESTPKKA001\n- Amount: 150000\n- DateTime: 30/08/2025, 15:25:00\n- ActivityCode: Fund Transfer\n- UserType: MOBILE\n- TransactionComments: Test payment"
+    }
+  ],
+  "stream": false
+}

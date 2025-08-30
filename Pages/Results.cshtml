@@ -1,0 +1,1198 @@
+@page
+@model ResultsModel
+@{
+    ViewData["Title"] = "Results";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-chart-line me-2 text-primary"></i>
+                API Test Results
+                <span class="badge bg-primary ms-2" id="resultsBadge">0</span>
+            </h2>
+            <div class="btn-group">
+                <button id="refreshBtn" class="btn btn-outline-primary">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
+                <button id="clearLogsBtn" class="btn btn-outline-danger">
+                    <i class="fas fa-trash me-1"></i> Clear Logs
+                </button>
+            </div>
+        </div>
+        <div id="configInfo" class="text-muted mb-3">Loading configuration details...</div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4 slide-in-up">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <i class="fas fa-list text-primary fa-2x mb-2 pulse-glow"></i>
+                <h5 class="card-title text-primary" id="totalResults">0</h5>
+                <p class="card-text small">Total Results</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                <h5 class="card-title text-success" id="successRate">0%</h5>
+                <p class="card-text small">Success Rate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <i class="fas fa-clock text-warning fa-2x mb-2"></i>
+                <h5 class="card-title text-warning" id="avgResponse">0ms</h5>
+                <p class="card-text small">Avg Response</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center border-info">
+            <div class="card-body">
+                <i class="fas fa-rocket text-info fa-2x mb-2"></i>
+                <h5 class="card-title text-info" id="fastestResponse">0ms</h5>
+                <p class="card-text small">Fastest Response</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Selection -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-cog me-2"></i>Configuration & Filters
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold">Select Configuration</label>
+                <select id="configurationSelect" class="form-select">
+                    <option value="">Loading configurations...</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label fw-semibold">Status Filter</label>
+                <select id="statusFilter" class="form-select">
+                    <option value="">All Results</option>
+                    <option value="true">Successful Only</option>
+                    <option value="false">Failed Only</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label fw-semibold">Results per Page</label>
+                <select id="pageSize" class="form-select">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold">Date Range</label>
+                <div class="d-flex gap-2">
+                    <input type="datetime-local" id="startDate" class="form-control" placeholder="Start">
+                    <input type="datetime-local" id="endDate" class="form-control" placeholder="End">
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <button id="applyFilters" class="btn btn-primary me-2">
+                    <i class="fas fa-filter me-1"></i> Apply Filters
+                </button>
+                <button id="toggleStoryView" class="btn btn-outline-info">
+                    <i class="fas fa-book me-1"></i> <span id="storyViewText">Story View</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Display -->
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-list me-2 text-primary"></i>Test Results
+        </h5>
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" onclick="exportResults()">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button class="btn btn-outline-secondary" onclick="copyResults()">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="resultsContainer">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted">Loading results...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+<nav id="paginationContainer" class="mt-4" style="display: none;">
+    <ul class="pagination justify-content-center" id="pagination">
+    </ul>
+</nav>
+
+<!-- Result Detail Modal -->
+<div class="modal fade" id="resultModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>Request Result Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="resultDetails"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="copyModalContent()">
+                    <i class="fas fa-copy me-1"></i> Copy Details
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<style>
+    .result-card {
+        border-left: 4px solid #007bff;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+    .result-success {
+        border-left-color: #28a745;
+    }
+    .result-error {
+        border-left-color: #dc3545;
+    }
+    .result-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .json-display {
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .flow-arrow {
+        color: #6c757d;
+        margin: 0 10px;
+        font-size: 1.2em;
+    }
+    .response-time-display {
+        background: linear-gradient(90deg, #f8f9fa, #e9ecef, #f8f9fa);
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+    }
+    .story-card {
+        border-left: 4px solid #17a2b8;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    }
+    .story-header {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .story-header:hover {
+        background-color: #f1f3f4;
+    }
+    .story-content {
+        border-top: 1px solid #dee2e6;
+        background: #ffffff;
+    }
+    .risk-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    .risk-low { background-color: #28a745; }
+    .risk-medium { background-color: #ffc107; }
+    .risk-high { background-color: #dc3545; }
+    .timeline-item {
+        border-left: 2px solid #dee2e6;
+        padding-left: 20px;
+        margin-bottom: 15px;
+        position: relative;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -5px;
+        top: 5px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #007bff;
+    }
+</style>
+
+<script>
+    // Configuration
+    const API_BASE = '/api';
+    let currentPage = 1;
+    let currentConfigId = @Html.Raw(Model.ConfigurationId?.ToString() ?? "null");
+    let currentResults = [];
+    let filteredResults = [];
+    let statistics = {};
+    let storyViewEnabled = false;
+    let availableConfigurations = [];
+    
+    // Get URL parameters
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get configId from URL parameter
+        const urlConfigId = getUrlParameter('configId');
+        if (urlConfigId) {
+            currentConfigId = parseInt(urlConfigId);
+        }
+        
+        loadConfigurations();
+        loadResults();
+        setupEventListeners();
+    });
+
+    // Setup event listeners
+    function setupEventListeners() {
+        document.getElementById('refreshBtn').addEventListener('click', loadResults);
+        document.getElementById('applyFilters').addEventListener('click', applyFilters);
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('pageSize').addEventListener('change', function() {
+            currentPage = 1;
+            renderResults();
+        });
+        document.getElementById('toggleStoryView').addEventListener('click', toggleStoryView);
+        document.getElementById('clearLogsBtn').addEventListener('click', clearLogs);
+        document.getElementById('configurationSelect').addEventListener('change', function() {
+            const newConfigId = this.value;
+            if (newConfigId !== (currentConfigId?.toString() || '')) {
+                if (newConfigId) {
+                    window.location.href = `/Results?configId=${newConfigId}`;
+                } else {
+                    window.location.href = '/Results'; // Show all configurations
+                }
+            }
+        });
+    }
+
+    // Toggle story view
+    function toggleStoryView() {
+        storyViewEnabled = !storyViewEnabled;
+        const btn = document.getElementById('toggleStoryView');
+        const text = document.getElementById('storyViewText');
+        
+        if (storyViewEnabled) {
+            btn.className = 'btn btn-info';
+            text.textContent = 'Card View';
+        } else {
+            btn.className = 'btn btn-outline-info';
+            text.textContent = 'Story View';
+        }
+        
+        renderResults();
+    }
+
+    // Clear logs function
+    async function clearLogs() {
+        if (!confirm('Are you sure you want to delete all results for this configuration? This action cannot be undone.')) {
+            return;
+        }
+        
+        if (!currentConfigId) {
+            showToast('No configuration selected', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_BASE}/results/configuration/${currentConfigId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                showToast('Results cleared successfully!');
+                loadResults(); // Reload results
+            } else {
+                throw new Error('Failed to clear results');
+            }
+        } catch (error) {
+            console.error('Error clearing results:', error);
+            showToast('Error clearing results: ' + error.message, 'error');
+        }
+    }
+    
+    // Load configuration details
+    async function loadConfigurationDetails() {
+        try {
+            const response = await fetch(`${API_BASE}/configuration/${currentConfigId}`);
+            if (response.ok) {
+                const config = await response.json();
+                document.getElementById('configInfo').innerHTML = `
+                    <strong>Configuration:</strong> ${config.name} | 
+                    <strong>Endpoint:</strong> ${config.apiEndpoint} | 
+                    <strong>Status:</strong> <span class="badge bg-${config.isActive ? 'success' : 'secondary'}">${config.isActive ? 'Active' : 'Inactive'}</span>
+                `;
+                document.title = `Results - ${config.name}`;
+            }
+        } catch (error) {
+            console.error('Error loading configuration details:', error);
+        }
+    }
+
+    // Load configurations
+    async function loadConfigurations() {
+        try {
+            const response = await fetch(`${API_BASE}/configuration`);
+            if (response.ok) {
+                availableConfigurations = await response.json();
+                
+                // Populate configuration dropdown
+                const configSelect = document.getElementById('configurationSelect');
+                configSelect.innerHTML = '';
+                
+                // Add "All configurations" option
+                const allOption = document.createElement('option');
+                allOption.value = '';
+                allOption.textContent = 'All Configurations';
+                configSelect.appendChild(allOption);
+                
+                // Add individual configurations
+                availableConfigurations.forEach(config => {
+                    const option = document.createElement('option');
+                    option.value = config.id;
+                    option.textContent = config.name;
+                    if (config.id === currentConfigId) {
+                        option.selected = true;
+                    }
+                    configSelect.appendChild(option);
+                });
+                
+                // Update configuration info display
+                updateConfigurationInfo();
+            } else {
+                throw new Error('Failed to load configurations');
+            }
+        } catch (error) {
+            console.error('Error loading configurations:', error);
+            document.getElementById('configurationSelect').innerHTML = '<option value="">Error loading configurations</option>';
+        }
+    }
+    
+    // Update configuration info display
+    function updateConfigurationInfo() {
+        if (currentConfigId && availableConfigurations.length > 0) {
+            const config = availableConfigurations.find(c => c.id === currentConfigId);
+            if (config) {
+                document.getElementById('configInfo').innerHTML = `
+                    <strong>Configuration:</strong> ${config.name} | 
+                    <strong>Endpoint:</strong> ${config.apiEndpoint} | 
+                    <strong>Status:</strong> <span class="badge bg-${config.isActive ? 'success' : 'secondary'}">${config.isActive ? 'Active' : 'Inactive'}</span>
+                `;
+                document.title = `Results - ${config.name}`;
+            }
+        } else {
+            document.getElementById('configInfo').innerHTML = '<strong>Showing:</strong> Results from all configurations';
+            document.title = 'Results - All Configurations';
+        }
+    }
+
+    // Load all results
+    async function loadResults() {
+        try {
+            showLoadingState();
+            
+            const pageSize = parseInt(document.getElementById('pageSize').value);
+            
+            // Build API URL based on whether a configuration is selected
+            let apiUrl = `/api/results?pageSize=1000&page=1`; // Load more to show all available
+            
+            // If a specific configuration is selected, filter by configuration
+            if (currentConfigId) {
+                apiUrl += `&configurationId=${currentConfigId}`;
+            }
+            
+            const response = await fetch(apiUrl);
+            
+            if (response.ok) {
+                const apiResults = await response.json();
+                
+                // Convert API request logs to results format
+                console.log('Raw API results data:', apiResults);
+                currentResults = (apiResults || []).map(log => ({
+                    id: log.id || 0,
+                    iterationNumber: log.iterationNumber || log.id || 0,
+                    requestTimestamp: log.requestTimestamp || new Date().toISOString(),
+                    responseTimeMs: log.responseTimeMs || 0,
+                    isSuccessful: log.isSuccessful === true,
+                    isTested: true, // All API logs are tested by definition
+                    statusCode: log.statusCode || 0,
+                    requestPayload: log.requestPayload || '{}',
+                    responseContent: log.responseContent || null,
+                    errorMessage: log.errorMessage || null,
+                    configurationId: log.apiConfigurationId || null
+                }));
+                console.log('Processed API results:', currentResults);
+                
+                // Calculate statistics
+                calculateStatistics();
+                applyFilters();
+            } else {
+                throw new Error('Failed to load API test results');
+            }
+        } catch (error) {
+            console.error('Error loading results:', error);
+            document.getElementById('resultsContainer').innerHTML = 
+                `<div class="alert alert-danger">
+                    <h6>Error loading results</h6>
+                    <p>${error.message}</p>
+                    <button class="btn btn-outline-primary" onclick="loadResults()">
+                        <i class="fas fa-redo me-1"></i> Retry
+                    </button>
+                </div>`;
+        }
+    }
+    
+    // Calculate statistics from current results
+    function calculateStatistics() {
+        const total = currentResults.length;
+        const successful = currentResults.filter(r => r.isSuccessful).length;
+        const responseTimes = currentResults.map(r => r.responseTimeMs).filter(t => t > 0);
+        
+        statistics = {
+            totalRequests: total,
+            successRate: total > 0 ? (successful / total) * 100 : 0,
+            averageResponseTime: responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : 0,
+            minResponseTime: responseTimes.length > 0 ? Math.min(...responseTimes) : 0,
+            maxResponseTime: responseTimes.length > 0 ? Math.max(...responseTimes) : 0
+        };
+        
+        updateStatistics();
+    }
+    
+    // Show loading state
+    function showLoadingState() {
+        document.getElementById('resultsContainer').innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted">Loading results...</p>
+            </div>
+        `;
+    }
+    
+    // Update statistics
+    function updateStatistics() {
+        document.getElementById('totalResults').textContent = statistics.totalRequests || 0;
+        document.getElementById('successRate').textContent = `${Math.round(statistics.successRate || 0)}%`;
+        document.getElementById('avgResponse').textContent = `${Math.round(statistics.averageResponseTime || 0)}ms`;
+        document.getElementById('fastestResponse').textContent = `${statistics.minResponseTime || 0}ms`;
+    }
+    
+    // Apply filters
+    function applyFilters() {
+        const statusFilter = document.getElementById('statusFilter').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        filteredResults = currentResults.filter(result => {
+            // Status filter
+            if (statusFilter !== '') {
+                const isSuccessful = statusFilter === 'true';
+                if (result.isSuccessful !== isSuccessful) return false;
+            }
+            
+            // Date range filter
+            const resultDate = new Date(result.requestTimestamp);
+            if (startDate && resultDate < new Date(startDate)) return false;
+            if (endDate && resultDate > new Date(endDate)) return false;
+            
+            return true;
+        });
+        
+        currentPage = 1;
+        updateFilteredStats();
+        renderResults();
+    }
+
+    // Update filtered statistics
+    function updateFilteredStats() {
+        const total = filteredResults.length;
+        const successful = filteredResults.filter(r => r.isSuccessful).length;
+        const successRate = total > 0 ? Math.round((successful / total) * 100) : 0;
+        
+        const responseTimes = filteredResults.map(r => r.responseTimeMs);
+        const avgResponse = responseTimes.length > 0 ? 
+            Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) : 0;
+        const fastestResponse = responseTimes.length > 0 ? Math.min(...responseTimes) : 0;
+        
+        document.getElementById('totalResults').textContent = total;
+        document.getElementById('successRate').textContent = `${successRate}%`;
+        document.getElementById('avgResponse').textContent = `${avgResponse}ms`;
+        document.getElementById('fastestResponse').textContent = `${fastestResponse}ms`;
+        document.getElementById('resultsBadge').textContent = total;
+    }
+
+    // Render results with pagination
+    function renderResults() {
+        const pageSize = parseInt(document.getElementById('pageSize').value);
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const pageResults = filteredResults.slice(startIndex, endIndex);
+        
+        if (pageResults.length === 0) {
+            document.getElementById('resultsContainer').innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No results found</h5>
+                    <p class="text-muted">Try adjusting your filters or check back later.</p>
+                </div>
+            `;
+            document.getElementById('paginationContainer').style.display = 'none';
+            return;
+        }
+        
+        const html = storyViewEnabled ? 
+            pageResults.map(renderStoryCard).join('') : 
+            pageResults.map(renderResultCard).join('');
+        
+        document.getElementById('resultsContainer').innerHTML = html;
+        renderPagination();
+    }
+
+    // Render individual result card (standard view)
+    function renderResultCard(result) {
+        // For untested scenarios, use neutral styling
+        const isTested = result.isTested;
+        const isSuccess = result.isSuccessful;
+        
+        let cardClass, statusIcon, statusColor;
+        if (!isTested) {
+            cardClass = 'result-card';
+            statusIcon = 'fa-clock';
+            statusColor = 'text-secondary';
+        } else {
+            cardClass = isSuccess ? 'result-success' : 'result-error';
+            statusIcon = isSuccess ? 'fa-check-circle' : 'fa-times-circle';
+            statusColor = isSuccess ? 'text-success' : 'text-danger';
+        }
+        
+        const date = new Date(result.requestTimestamp).toLocaleString();
+        
+        // Extract key info from request payload for preview
+        let inputPreview = 'Request data available';
+        let riskScore = 'N/A';
+        try {
+            const payload = JSON.parse(result.requestPayload);
+            if (payload.messages && payload.messages[0] && payload.messages[0].content) {
+                inputPreview = payload.messages[0].content.substring(0, 100) + '...';
+                // Extract risk score for better display
+                const riskMatch = payload.messages[0].content.match(/Amount Risk Score: (\d+)/);
+                if (riskMatch) {
+                    riskScore = riskMatch[1];
+                }
+            }
+        } catch (e) {
+            // Use default preview
+        }
+        
+        // Extract key info from response for preview
+        let outputPreview = 'No response content';
+        if (result.responseContent && result.responseContent.trim()) {
+            try {
+                const response = JSON.parse(result.responseContent);
+                outputPreview = JSON.stringify(response).substring(0, 100) + '...';
+            } catch (e) {
+                outputPreview = result.responseContent.substring(0, 100) + '...';
+            }
+        } else if (result.errorMessage && result.errorMessage.trim()) {
+            outputPreview = result.errorMessage.substring(0, 100) + '...';
+        }
+        
+        const riskLevel = riskScore !== 'N/A' ? 
+            (parseInt(riskScore) <= 3 ? 'Low' : parseInt(riskScore) <= 6 ? 'Medium' : 'High') : 'Unknown';
+        const riskClass = riskLevel.toLowerCase();
+        
+        return `
+            <div class="card ${cardClass} mb-3">
+                <div class="card-body">
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <i class="fas ${statusIcon} ${statusColor} fa-2x me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">
+                                        Iteration #${result.iterationNumber}
+                                        <span class="ms-2">
+                                            <span class="risk-indicator risk-${riskClass}"></span>
+                                            ${riskLevel} Risk ${riskScore !== 'N/A' ? `(${riskScore})` : ''}
+                                        </span>
+                                    </h6>
+                                    <small class="text-muted">${date}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            ${!isTested ? 
+                                '<span class="badge bg-secondary fs-6 me-2">NOT TESTED</span>' :
+                                `<span class="badge ${isSuccess ? 'bg-success' : 'bg-danger'} fs-6 me-2">
+                                    ${isSuccess ? 'SUCCESS' : 'FAILED'}
+                                 </span>`
+                            }
+                            ${isTested ? 
+                                `<span class="badge bg-info fs-6">${result.responseTimeMs}ms</span>` :
+                                '<span class="badge bg-light text-dark fs-6">No test data</span>'
+                            }
+                        </div>
+                    </div>
+                    
+                    <!-- Flow Display -->
+                    <div class="response-time-display">
+                        <div class="row align-items-center g-2">
+                            <div class="col-12 col-md-4 text-center mb-2 mb-md-0">
+                                <div class="fw-bold text-primary mb-1 fs-6">INPUT</div>
+                                <div class="small text-muted" style="max-height: 3rem; overflow: hidden;">${inputPreview}</div>
+                            </div>
+                            <div class="col-12 col-md-4 text-center mb-2 mb-md-0">
+                                <i class="fas fa-arrow-right flow-arrow"></i>
+                                <div class="fw-bold text-warning fs-4">${result.responseTimeMs}ms</div>
+                                <div class="small text-muted">Response Time</div>
+                                <i class="fas fa-arrow-right flow-arrow"></i>
+                            </div>
+                            <div class="col-12 col-md-4 text-center">
+                                <div class="fw-bold ${statusColor} mb-1 fs-6">OUTPUT</div>
+                                <div class="small text-muted" style="max-height: 3rem; overflow: hidden;">${outputPreview}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <strong>Status Code:</strong> ${result.statusCode || 'N/A'}
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-outline-primary btn-sm" onclick="viewDetails(${result.id})">
+                                <i class="fas fa-eye me-1"></i> View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Render story card (enhanced narrative view)
+    function renderStoryCard(result, index) {
+        const isSuccess = result.isSuccessful;
+        const statusColor = isSuccess ? 'text-success' : 'text-danger';
+        const date = new Date(result.requestTimestamp).toLocaleString();
+        
+        // Parse the request content to create a story
+        let storyData = parseRequestForStory(result.requestPayload);
+        
+        return `
+            <div class="card story-card">
+                <div class="card-header story-header" onclick="toggleStoryCollapse(${index})" data-bs-toggle="collapse" data-bs-target="#story${index}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="fas fa-book me-2 text-info"></i>
+                                Fraud Detection Story #${result.iterationNumber}
+                                <span class="risk-indicator risk-${storyData.riskClass}"></span>
+                                ${storyData.riskLevel} Risk
+                            </h6>
+                            <small class="text-muted">${date} • ${result.responseTimeMs}ms</small>
+                        </div>
+                        <div>
+                            <span class="badge ${isSuccess ? 'bg-success' : 'bg-danger'} me-2">${isSuccess ? 'CLEARED' : 'FLAGGED'}</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="collapse" id="story${index}">
+                    <div class="card-body story-content">
+                        <!-- Story Timeline -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-user-check me-2"></i>Customer Profile</h6>
+                            <div class="timeline-item">
+                                <p class="mb-1"><strong>Profile:</strong> ${storyData.profile}</p>
+                                <p class="mb-0 text-muted"><strong>Activity Pattern:</strong> ${storyData.activity}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="text-warning mb-3"><i class="fas fa-exchange-alt me-2"></i>Transaction Details</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="timeline-item">
+                                        <p class="mb-1"><strong>From:</strong> ${storyData.fromName} (${storyData.fromAccount})</p>
+                                        <p class="mb-1"><strong>To:</strong> ${storyData.toName} (${storyData.toAccount})</p>
+                                        <p class="mb-0 text-muted"><strong>Amount:</strong> PKR ${storyData.amount.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="timeline-item">
+                                        <p class="mb-1"><strong>Purpose:</strong> ${storyData.purpose}</p>
+                                        <p class="mb-1"><strong>Channel:</strong> ${storyData.userType}</p>
+                                        <p class="mb-0 text-muted"><strong>Date/Time:</strong> ${storyData.dateTime}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="${statusColor} mb-3">
+                                <i class="fas fa-${isSuccess ? 'shield-alt' : 'exclamation-triangle'} me-2"></i>
+                                Risk Analysis & Decision
+                            </h6>
+                            <div class="timeline-item">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Risk Score:</strong> ${storyData.riskScore}/10</p>
+                                        <p class="mb-1"><strong>Amount Flag:</strong> ${storyData.highAmountFlag}</p>
+                                        <p class="mb-0"><strong>New Activity:</strong> ${storyData.newActivityCode}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Watchlist Matches:</strong> ${storyData.watchlistMatches}</p>
+                                        <p class="mb-1"><strong>Final Decision:</strong> <span class="${statusColor}">${isSuccess ? 'APPROVED' : 'BLOCKED'}</span></p>
+                                        <p class="mb-0"><strong>Processing Time:</strong> ${result.responseTimeMs}ms</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Response Summary -->
+                        <div class="mb-3">
+                            <h6 class="text-info mb-3"><i class="fas fa-clipboard-list me-2"></i>System Response</h6>
+                            <div class="alert alert-${isSuccess ? 'success' : 'danger'} mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-${isSuccess ? 'check-circle' : 'times-circle'} fa-2x me-3"></i>
+                                    <div>
+                                        <h6 class="mb-1">Transaction ${isSuccess ? 'Approved' : 'Blocked'}</h6>
+                                        <p class="mb-0">${isSuccess ? 
+                                            'This transaction has been processed and approved by the fraud detection system.' :
+                                            'This transaction has been flagged and blocked due to suspicious activity patterns.'
+                                        }</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button class="btn btn-outline-primary btn-sm" onclick="viewDetails(${result.id})">
+                                <i class="fas fa-code me-1"></i> View Raw Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Parse request payload to extract story elements
+    function parseRequestForStory(requestPayload) {
+        let storyData = {
+            profile: 'Unknown Customer',
+            activity: 'Transaction activity',
+            fromName: 'Unknown',
+            toName: 'Unknown',
+            fromAccount: 'N/A',
+            toAccount: 'N/A',
+            amount: 0,
+            purpose: 'Unknown',
+            userType: 'Unknown',
+            dateTime: 'N/A',
+            riskScore: 0,
+            riskLevel: 'Unknown',
+            riskClass: 'low',
+            highAmountFlag: 'No',
+            newActivityCode: 'No',
+            watchlistMatches: 'None'
+        };
+        
+        try {
+            if (!requestPayload || requestPayload.trim() === '') {
+                return storyData;
+            }
+            
+            const payload = JSON.parse(requestPayload);
+            if (!payload || !payload.messages || !payload.messages[0] || !payload.messages[0].content) {
+                return storyData;
+            }
+            
+            const content = payload.messages[0].content;
+            
+            // Extract profile
+            const profileMatch = content.match(/- (.*?Customer[^\.]*|.*?trader.*?|.*?business.*?|.*?individual.*?)\./);
+            if (profileMatch) storyData.profile = profileMatch[1];
+            
+            // Extract activity
+            const activityMatch = content.match(/- (Today made.*?|Typically.*?|Usually.*?|Receives.*?|Recently.*?)\./);
+            if (activityMatch) storyData.activity = activityMatch[1];
+            
+            // Extract transaction details
+            const fromNameMatch = content.match(/FromName: ([^\n]+)/);
+            if (fromNameMatch) storyData.fromName = fromNameMatch[1];
+            
+            const toNameMatch = content.match(/ToName: ([^\n]+)/);
+            if (toNameMatch) storyData.toName = toNameMatch[1];
+            
+            const fromAccountMatch = content.match(/FromAccount: ([^\n]+)/);
+            if (fromAccountMatch) storyData.fromAccount = fromAccountMatch[1];
+            
+            const toAccountMatch = content.match(/ToAccount: ([^\n]+)/);
+            if (toAccountMatch) storyData.toAccount = toAccountMatch[1];
+            
+            const amountMatch = content.match(/Amount: (\d+)/);
+            if (amountMatch) storyData.amount = parseInt(amountMatch[1]);
+            
+            const purposeMatch = content.match(/(?:LogDescription|TransactionComments): ([^\n]+)/);
+            if (purposeMatch) storyData.purpose = purposeMatch[1];
+            
+            const userTypeMatch = content.match(/UserType: ([^\n]+)/);
+            if (userTypeMatch) storyData.userType = userTypeMatch[1];
+            
+            const dateTimeMatch = content.match(/DateTime: ([^\n]+)/);
+            if (dateTimeMatch) storyData.dateTime = dateTimeMatch[1];
+            
+            // Extract risk information
+            const riskScoreMatch = content.match(/Amount Risk Score: (\d+)/);
+            if (riskScoreMatch) {
+                storyData.riskScore = parseInt(riskScoreMatch[1]);
+                storyData.riskLevel = storyData.riskScore <= 3 ? 'Low' : storyData.riskScore <= 6 ? 'Medium' : 'High';
+                storyData.riskClass = storyData.riskLevel.toLowerCase();
+            }
+            
+            const highAmountMatch = content.match(/High Amount Flag: ([^\n]+)/);
+            if (highAmountMatch) storyData.highAmountFlag = highAmountMatch[1];
+            
+            const newActivityMatch = content.match(/New Activity Code: ([^\n]+)/);
+            if (newActivityMatch) storyData.newActivityCode = newActivityMatch[1];
+            
+            // Extract watchlist information
+            const watchlistIndicators = [];
+            const watchlistMatches = content.match(/Watchlist Indicators:[\s\S]*?(?=\n\nTransaction Details:|$)/);
+            if (watchlistMatches) {
+                const watchlistText = watchlistMatches[0];
+                if (watchlistText.includes(': Yes')) {
+                    const yesMatches = watchlistText.match(/(\w+): Yes/g);
+                    if (yesMatches) {
+                        watchlistIndicators.push(...yesMatches.map(m => m.replace(': Yes', '')));
+                    }
+                }
+            }
+            storyData.watchlistMatches = watchlistIndicators.length > 0 ? watchlistIndicators.join(', ') : 'None';
+            
+        } catch (e) {
+            console.error('Error parsing request payload for story:', e);
+        }
+        
+        return storyData;
+    }
+
+    // Toggle story collapse
+    function toggleStoryCollapse(index) {
+        const element = document.getElementById(`story${index}`);
+        if (element) {
+            const isExpanded = element.classList.contains('show');
+            const icon = element.parentElement.querySelector('.fa-chevron-down');
+            if (icon) {
+                icon.className = isExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+            }
+        }
+    }
+
+    // Render pagination
+    function renderPagination() {
+        const pageSize = parseInt(document.getElementById('pageSize').value);
+        const totalPages = Math.ceil(filteredResults.length / pageSize);
+        
+        if (totalPages <= 1) {
+            document.getElementById('paginationContainer').style.display = 'none';
+            return;
+        }
+        
+        document.getElementById('paginationContainer').style.display = 'block';
+        
+        let html = '';
+        
+        // Previous button
+        html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a>
+                 </li>`;
+        
+        // Page numbers
+        const maxPages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+        let endPage = Math.min(totalPages, startPage + maxPages - 1);
+        
+        if (endPage - startPage < maxPages - 1) {
+            startPage = Math.max(1, endPage - maxPages + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                     </li>`;
+        }
+        
+        // Next button
+        html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a>
+                 </li>`;
+        
+        document.getElementById('pagination').innerHTML = html;
+    }
+
+    // Change page
+    function changePage(page) {
+        const pageSize = parseInt(document.getElementById('pageSize').value);
+        const totalPages = Math.ceil(filteredResults.length / pageSize);
+        
+        if (page >= 1 && page <= totalPages) {
+            currentPage = page;
+            renderResults();
+        }
+    }
+
+    // View result details
+    async function viewDetails(resultId) {
+        try {
+            const response = await fetch(`/api/results/${resultId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const apiLog = await response.json();
+            console.log('API log details loaded:', apiLog);
+            
+            let requestJson = '';
+            let responseJson = '';
+            
+            try {
+                if (apiLog.requestPayload) {
+                    requestJson = typeof apiLog.requestPayload === 'string' ? 
+                        JSON.stringify(JSON.parse(apiLog.requestPayload), null, 2) : 
+                        JSON.stringify(apiLog.requestPayload, null, 2);
+                } else {
+                    requestJson = 'No request data';
+                }
+            } catch (e) {
+                requestJson = apiLog.requestPayload || 'No request data';
+            }
+            
+            try {
+                if (apiLog.responseContent) {
+                    responseJson = typeof apiLog.responseContent === 'string' ? 
+                        JSON.stringify(JSON.parse(apiLog.responseContent), null, 2) : 
+                        JSON.stringify(apiLog.responseContent, null, 2);
+                } else {
+                    responseJson = 'No response content';
+                }
+            } catch (e) {
+                responseJson = apiLog.responseContent || 'No response content';
+            }
+            
+            // Use API log properties directly
+            const id = apiLog.id || 'undefined';
+            const configName = apiLog.apiConfigurationName || 'API Test';
+            const generatedAt = apiLog.requestTimestamp || new Date().toISOString();
+            const isTested = true; // All API logs are tested
+            const testedAt = apiLog.requestTimestamp;
+            const testSuccessful = apiLog.isSuccessful || false;
+            const responseTimeMs = apiLog.responseTimeMs || 0;
+            const testErrorMessage = apiLog.errorMessage;
+            const lastStatusCode = apiLog.statusCode || 'N/A';
+            const iterationNumber = apiLog.iterationNumber || id;
+            
+            // Parse request to get transaction details
+            let amount = 0, fromName = 'Unknown', toName = 'Unknown', riskLevel = 'unknown';
+            try {
+                const requestData = JSON.parse(apiLog.requestPayload || '{}');
+                if (requestData.messages && requestData.messages[0] && requestData.messages[0].content) {
+                    const content = requestData.messages[0].content;
+                    const amountMatch = content.match(/Amount: (\d+)/);
+                    if (amountMatch) amount = parseInt(amountMatch[1]);
+                    
+                    const fromMatch = content.match(/FromName: ([^\n]+)/);
+                    if (fromMatch) fromName = fromMatch[1];
+                    
+                    const toMatch = content.match(/ToName: ([^\n]+)/);
+                    if (toMatch) toName = toMatch[1];
+                    
+                    const riskMatch = content.match(/Amount Risk Score: (\d+)/);
+                    if (riskMatch) {
+                        const score = parseInt(riskMatch[1]);
+                        riskLevel = score <= 3 ? 'low' : score <= 6 ? 'medium' : 'high';
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing request payload:', e);
+            }
+            
+            const details = `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-info-circle me-2 text-primary"></i>Request Information</h6>
+                                <table class="table table-sm table-bordered">
+                                    <tr><td><strong>Request ID:</strong></td><td>#${id}</td></tr>
+                                    <tr><td><strong>Configuration:</strong></td><td>${configName}</td></tr>
+                                    <tr><td><strong>Risk Level:</strong></td><td><span class="badge bg-${riskLevel === 'low' ? 'success' : riskLevel === 'medium' ? 'warning' : 'danger'}">${riskLevel.toUpperCase()}</span></td></tr>
+                                    <tr><td><strong>Request Time:</strong></td><td>${new Date(generatedAt).toLocaleString()}</td></tr>
+                                    <tr><td><strong>Amount:</strong></td><td>PKR ${amount ? amount.toLocaleString() : 'N/A'}</td></tr>
+                                    <tr><td><strong>From:</strong></td><td>${fromName}</td></tr>
+                                    <tr><td><strong>To:</strong></td><td>${toName}</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-chart-line me-2 text-success"></i>API Test Results</h6>
+                                <table class="table table-sm table-bordered">
+                                    <tr><td><strong>Status:</strong></td><td><span class="${isTested ? 'text-success' : 'text-muted'}">${isTested ? 'API Tested' : 'Not Tested'}</span></td></tr>
+                                    <tr><td><strong>Tested At:</strong></td><td>${testedAt ? new Date(testedAt).toLocaleString() : 'N/A'}</td></tr>
+                                    <tr><td><strong>Success:</strong></td><td><span class="${testSuccessful ? 'text-success' : 'text-danger'}">${testSuccessful ? 'Successful' : 'Failed'}</span></td></tr>
+                                    <tr><td><strong>Response Time:</strong></td><td><span class="badge bg-info">${responseTimeMs}ms</span></td></tr>
+                                    <tr><td><strong>Status Code:</strong></td><td><span class="badge bg-${lastStatusCode >= 200 && lastStatusCode < 300 ? 'success' : 'danger'}">${lastStatusCode}</span></td></tr>
+                                    <tr><td><strong>Iteration:</strong></td><td>#${iterationNumber}</td></tr>
+                                    ${testErrorMessage ? `<tr><td><strong>Error:</strong></td><td><span class="text-danger">${testErrorMessage}</span></td></tr>` : ''}
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-upload me-2 text-primary"></i>Request Payload</h6>
+                        <div class="json-display">
+                            <pre>${requestJson}</pre>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-download me-2 text-success"></i>Response Content</h6>
+                        <div class="json-display">
+                            <pre>${responseJson}</pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('resultDetails').innerHTML = details;
+            new bootstrap.Modal(document.getElementById('resultModal')).show();
+        } catch (error) {
+            console.error('Error loading generation details:', error);
+            showToast('Failed to load generation details: ' + error.message, 'error');
+        }
+    }
+
+    // Copy modal content
+    async function copyModalContent() {
+        try {
+            const content = document.getElementById('resultDetails').textContent;
+            await navigator.clipboard.writeText(content);
+            showToast('Result details copied to clipboard!');
+        } catch (error) {
+            showToast('Failed to copy to clipboard', 'error');
+        }
+    }
+
+    // Export results
+    function exportResults() {
+        if (filteredResults.length === 0) {
+            showToast('No results to export!', 'error');
+            return;
+        }
+        
+        // Create CSV data
+        const headers = ['Iteration', 'Timestamp', 'Success', 'Status Code', 'Response Time (ms)', 'Error Message'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredResults.map(r => [
+                r.iterationNumber,
+                new Date(r.requestTimestamp).toISOString(),
+                r.isSuccessful,
+                r.statusCode || '',
+                r.responseTimeMs,
+                (r.errorMessage || '').replace(/,/g, ';')
+            ].join(','))
+        ].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `results_${currentConfigId}_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast('Results exported successfully!');
+    }
+
+    // Copy results
+    async function copyResults() {
+        if (filteredResults.length === 0) {
+            showToast('No results to copy!', 'error');
+            return;
+        }
+        
+        try {
+            const jsonData = JSON.stringify(filteredResults, null, 2);
+            await navigator.clipboard.writeText(jsonData);
+            showToast('Results copied to clipboard!');
+        } catch (error) {
+            showToast('Failed to copy results', 'error');
+        }
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+        toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 250px;';
+        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-1"></i>${message}`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 4000);
+    }
+</script>
+}

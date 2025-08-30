@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Fraud Detector Pro</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Enhanced Navbar Styles */
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .nav-link-enhanced {
+            position: relative;
+            padding: 0.75rem 1rem !important;
+            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+            margin: 0 0.2rem;
+        }
+        
+        .nav-link-enhanced:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .nav-link-enhanced.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff !important;
+        }
+        
+        .nav-indicator {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: #ffc107;
+            transform: translateX(-50%);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link-enhanced.active .nav-indicator {
+            width: 80%;
+        }
+        
+        .status-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            animation: fadeInDown 0.3s ease;
+        }
+        
+        .dropdown-toggle::after {
+            transition: transform 0.3s ease;
+        }
+        
+        .dropdown-toggle[aria-expanded="true"]::after {
+            transform: rotate(180deg);
+        }
+        
+        @@keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Fix body layout */
+        body {
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 100vh !important;
+        }
+        
+        .container-fluid {
+            flex: 1 !important;
+        }
+        
+        /* Mobile responsiveness */
+        @@media (max-width: 991.98px) {
+            .nav-status { display: none !important; }
+            .navbar-nav { text-align: center; }
+            .nav-link-enhanced { margin: 0.2rem 0; }
+        }
+        
+        /* Enhanced footer */
+        .footer {
+            background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+            color: #fff;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+        
+        .footer a {
+            color: #ffc107;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer a:hover { color: #fff; }
+    </style>
+</head>
+<body>
+    <header>
+        <!-- Enhanced Navigation Bar -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow-lg mb-4">
+            <div class="container-fluid px-3">
+                <a class="navbar-brand fw-bold d-flex align-items-center" asp-area="" asp-page="/Index">
+                    <i class="fas fa-shield-alt text-warning fa-lg me-2"></i>
+                    <span>Fraud Detector Pro</span>
+                    <span class="badge bg-success ms-2 fs-6">v2.1</span>
+                </a>
+                
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-enhanced" asp-area="" asp-page="/Index">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                <span class="nav-text">Dashboard</span>
+                                <div class="nav-indicator"></div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-enhanced" asp-area="" asp-page="/Generator">
+                                <i class="fas fa-dice me-2"></i>
+                                <span class="nav-text">Generator</span>
+                                <div class="nav-indicator"></div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-enhanced" href="/Results" id="navResultsLink">
+                                <i class="fas fa-chart-line me-2"></i>
+                                <span class="nav-text">Results</span>
+                                <span class="badge bg-info ms-2" id="navResultsCount">0</span>
+                                <div class="nav-indicator"></div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-enhanced" asp-area="" asp-page="/Reports">
+                                <i class="fas fa-file-chart-line me-2"></i>
+                                <span class="nav-text">Reports</span>
+                                <div class="nav-indicator"></div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-enhanced" asp-area="" asp-page="/Configuration">
+                                <i class="fas fa-cogs me-2"></i>
+                                <span class="nav-text">Config</span>
+                                <div class="nav-indicator"></div>
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <div class="d-flex align-items-center">
+                        <div class="nav-status me-3 d-none d-lg-flex">
+                            <div class="status-item me-3" title="Database Status">
+                                <i class="fas fa-database text-success fa-sm"></i>
+                                <span class="status-dot bg-success"></span>
+                            </div>
+                        </div>
+                        
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <div class="nav-item dropdown me-2">
+                                <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-bolt me-1"></i>Quick
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
+                                    <li><a class="dropdown-item" href="#" onclick="quickGenerate('low')">
+                                        <i class="fas fa-shield-alt text-success me-2"></i>Low Risk (3)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="quickGenerate('medium')">
+                                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>Medium Risk (5)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="quickGenerate('high')">
+                                        <i class="fas fa-skull text-danger me-2"></i>High Risk (3)
+                                    </a></li>
+                                </ul>
+                            </div>
+                            
+                            <div class="nav-item dropdown">
+                                <button class="btn btn-outline-light btn-sm dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user-circle me-2"></i>
+                                    <span class="d-none d-md-inline">@(User.Identity.Name ?? "User")</span>
+                                    <span class="d-md-none">Account</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
+                                    <li><h6 class="dropdown-header">
+                                        <i class="fas fa-user me-2"></i>@(User.Identity.Name ?? "User")
+                                    </h6></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="viewProfile()">
+                                        <i class="fas fa-user-edit me-2"></i>Profile Settings
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#">
+                                        <i class="fas fa-cog me-2"></i>Preferences
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="logout()">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                    </a></li>
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex gap-2">
+                                <a href="/Account/Login" class="btn btn-outline-light btn-sm">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Login
+                                </a>
+                                <a href="/Account/Register" class="btn btn-light btn-sm">
+                                    <i class="fas fa-user-plus me-1"></i>Register
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid">
+        <main role="main" class="pb-3 fade-in">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer bg-gradient-primary text-white mt-auto py-5">
+        <div class="container">
+            <div class="row gy-4">
+                <!-- Brand Section -->
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-shield-alt text-warning me-2 fa-lg"></i>
+                        <h5 class="mb-0 text-white fw-bold">Fraud Detector Pro</h5>
+                    </div>
+                    <p class="text-white-50 mb-3">Advanced fraud detection and API testing platform for financial institutions.</p>
+                    <div class="d-flex gap-3">
+                        <a href="#" class="text-warning" title="Documentation">
+                            <i class="fab fa-github fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-warning" title="API Docs">
+                            <i class="fas fa-book fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-warning" title="Support">
+                            <i class="fas fa-life-ring fa-lg"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div class="col-md-4">
+                    <h6 class="text-warning mb-3 fw-semibold">
+                        <i class="fas fa-link me-2"></i>Quick Links
+                    </h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a asp-area="" asp-page="/Index" class="text-white-50 text-decoration-none hover-text-white">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a asp-area="" asp-page="/Generator" class="text-white-50 text-decoration-none hover-text-white">
+                                <i class="fas fa-dice me-2"></i>Scenario Generator
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="/Results" class="text-white-50 text-decoration-none hover-text-white">
+                                <i class="fas fa-chart-line me-2"></i>Test Results
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a asp-area="" asp-page="/Reports" class="text-white-50 text-decoration-none hover-text-white">
+                                <i class="fas fa-file-chart-line me-2"></i>Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- System Info -->
+                <div class="col-md-4">
+                    <h6 class="text-warning mb-3 fw-semibold">
+                        <i class="fas fa-info-circle me-2"></i>System Information
+                    </h6>
+                    <ul class="list-unstyled text-white-50">
+                        <li class="mb-2">
+                            <i class="fas fa-server me-2"></i>
+                            <span>Status: <span class="text-success fw-semibold">Online</span></span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-database me-2"></i>
+                            <span>Database: <span class="text-success fw-semibold">Connected</span></span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock me-2"></i>
+                            <span>Updated: <span id="footerTimestamp" class="text-info fw-semibold">Loading...</span></span>
+                        </li>
+                    </ul>
+                    <div class="mt-3">
+                        <a asp-area="" asp-page="/Privacy" class="text-warning text-decoration-none">
+                            <i class="fas fa-shield-alt me-1"></i>Privacy Policy
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-4 border-white-50">
+            
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="text-white-50">
+                        <i class="fas fa-copyright me-1"></i>
+                        2025 Fraud Detector Pro. All rights reserved.
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="text-white-50">
+                        <i class="fas fa-code me-1"></i>
+                        Built with ASP.NET Core & Bootstrap
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap CDN fallback -->
+    <script>
+        if (typeof bootstrap === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"><\/script>');
+        }
+    </script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        // Enhanced navbar functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap components
+            initializeBootstrap();
+            setActiveNavLink();
+            updateResultsCount();
+            updateFooterTimestamp();
+        });
+        
+        // Initialize Bootstrap components
+        function initializeBootstrap() {
+            // Initialize all dropdowns
+            const dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+            dropdownElements.forEach(element => {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                    new bootstrap.Dropdown(element);
+                }
+            });
+            
+            // Initialize all modals
+            const modalElements = document.querySelectorAll('.modal');
+            modalElements.forEach(element => {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    new bootstrap.Modal(element);
+                }
+            });
+            
+            // DISABLE tooltips to prevent hover issues
+            // Remove tooltip attributes that cause text readability problems
+            const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"], [data-toggle="tooltip"], [title]');
+            tooltipElements.forEach(element => {
+                // Only remove title for non-essential elements (not form inputs)
+                if (!element.matches('input, select, textarea')) {
+                    element.removeAttribute('data-bs-toggle');
+                    element.removeAttribute('data-toggle');
+                    // Keep title but prevent tooltip display via CSS
+                }
+            });
+            
+            // Fix hover issues on table rows
+            disableProblematicHovers();
+        }
+        
+        // Disable problematic hover effects
+        function disableProblematicHovers() {
+            // Add event listeners to fix table hover issues
+            document.addEventListener('mouseenter', function(e) {
+                // Check if e.target is an element before calling closest
+                if (e.target && typeof e.target.closest === 'function' && e.target.closest('table tbody tr')) {
+                    const row = e.target.closest('tr');
+                    if (row) {
+                        row.style.backgroundColor = 'rgba(0, 123, 255, 0.05)';
+                        // Ensure all text remains readable
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            cell.style.color = 'inherit';
+                        });
+                    }
+                }
+            }, true);
+            
+            document.addEventListener('mouseleave', function(e) {
+                // Check if e.target is an element before calling closest
+                if (e.target && typeof e.target.closest === 'function' && e.target.closest('table tbody tr')) {
+                    const row = e.target.closest('tr');
+                    if (row) {
+                        row.style.backgroundColor = '';
+                    }
+                }
+            }, true);
+        }
+        
+        // Set active nav link
+        function setActiveNavLink() {
+            const currentPath = window.location.pathname.toLowerCase();
+            const navLinks = document.querySelectorAll('.nav-link-enhanced');
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href') || link.getAttribute('asp-page');
+                if (href && (currentPath.includes(href.toLowerCase()) || 
+                    (currentPath === '/' && (href === '/Index' || href === '/')))) {
+                    link.classList.add('active');
+                }
+            });
+        }
+        
+        // Update results count
+        async function updateResultsCount() {
+            try {
+                const response = await fetch('/api/results/statistics');
+                if (response.ok) {
+                    const stats = await response.json();
+                    const count = stats.totalRequests || 0;
+                    document.getElementById('navResultsCount').textContent = count;
+                }
+            } catch (error) {
+                console.log('Could not update results count');
+            }
+        }
+        
+        // Quick generate functions
+        async function quickGenerate(riskLevel) {
+            try {
+                const count = riskLevel === 'medium' ? 5 : 3;
+                const response = await fetch('/api/generations/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        count: count,
+                        riskFocus: riskLevel,
+                        saveToDatabase: true
+                    })
+                });
+                
+                if (response.ok) {
+                    showToast(`Generated ${count} ${riskLevel} risk scenarios!`, 'success');
+                    updateResultsCount();
+                } else {
+                    throw new Error('Generation failed');
+                }
+            } catch (error) {
+                showToast('Quick generation failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Update footer timestamp
+        function updateFooterTimestamp() {
+            const timestampElement = document.getElementById('footerTimestamp');
+            if (timestampElement) {
+                const now = new Date();
+                // Format time with proper 12-hour format and AM/PM
+                const timeOptions = {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                };
+                timestampElement.textContent = now.toLocaleTimeString('en-US', timeOptions);
+                
+                // Update every second for real-time display
+                setTimeout(updateFooterTimestamp, 1000);
+            }
+        }
+        
+        // Global toast function
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+            toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 250px;';
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-1"></i>${message}`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const result = await Swal.fire({
+                    icon: 'question',
+                    title: 'Confirm Logout',
+                    text: 'Are you sure you want to log out?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Logout',
+                    cancelButtonText: 'Cancel'
+                });
+                
+                if (result.isConfirmed) {
+                    const response = await fetch('/api/account/logout', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Logged Out',
+                            text: 'You have been successfully logged out.',
+                            confirmButtonColor: '#198754',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => {
+                            window.location.href = '/Account/Login';
+                        });
+                    } else {
+                        throw new Error('Logout failed');
+                    }
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Logout Error',
+                    text: 'An error occurred during logout. Please try again.',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        }
+
+        // Profile function placeholder
+        function viewProfile() {
+            Swal.fire({
+                icon: 'info',
+                title: 'Profile Settings',
+                text: 'Profile settings page is coming soon!',
+                confirmButtonColor: '#0d6efd'
+            });
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

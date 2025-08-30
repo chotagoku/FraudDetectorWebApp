@@ -1,0 +1,1068 @@
+@page
+@model GeneratorModel
+@{
+    ViewData["Title"] = "Generator";
+}
+
+<!-- Enhanced Header -->
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4">
+            <div class="mb-3 mb-lg-0">
+                <h2 class="mb-1"><i class="fas fa-dice me-2 text-primary"></i>Smart Scenario Generator</h2>
+                <p class="text-muted mb-0">Generate realistic fraud detection test cases with advanced configurations</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-success" onclick="loadFavorites()">
+                    <i class="fas fa-star me-1"></i> Favorites
+                </button>
+                <button class="btn btn-outline-primary" onclick="loadSavedScenarios()">
+                    <i class="fas fa-folder-open me-1"></i> Load Saved
+                </button>
+                <button class="btn btn-outline-info" onclick="loadRandomFromDB()">
+                    <i class="fas fa-random me-1"></i> Random DB
+                </button>
+                <button class="btn btn-outline-secondary" onclick="clearAll()">
+                    <i class="fas fa-broom me-1"></i> Clear All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generator Controls Card -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-gradient-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-cogs me-2"></i>Generation Settings
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label fw-semibold">Number of Scenarios</label>
+                <select id="scenarioCount" class="form-select">
+                    <option value="1">1 Scenario</option>
+                    <option value="3" selected>3 Scenarios</option>
+                    <option value="5">5 Scenarios</option>
+                    <option value="10">10 Scenarios</option>
+                    <option value="25">25 Scenarios</option>
+                    <option value="50">50 Scenarios</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label fw-semibold">Risk Level Focus</label>
+                <select id="riskFocus" class="form-select">
+                    <option value="mixed" selected>Mixed (Random)</option>
+                    <option value="low">Low Risk Only</option>
+                    <option value="medium">Medium Risk Only</option>
+                    <option value="high">High Risk Only</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label fw-semibold">Output Format</label>
+                <select id="outputFormat" class="form-select">
+                    <option value="json" selected>JSON Format</option>
+                    <option value="table">Table View</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label fw-semibold">Save to Database</label>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" id="saveToDb" checked>
+                    <label class="form-check-label" for="saveToDb">
+                        Auto-save scenarios
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <button id="generateBtn" class="btn btn-primary btn-lg me-2">
+                    <i class="fas fa-dice me-2"></i> Generate Random Scenarios
+                </button>
+                <button id="generateAndTestBtn" class="btn btn-success btn-lg me-2">
+                    <i class="fas fa-play-circle me-2"></i> Generate & Test API
+                </button>
+                <button id="bulkTestBtn" class="btn btn-warning" disabled>
+                    <i class="fas fa-rocket me-1"></i> Bulk Test
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Testing Card -->
+<div class="card mb-4 shadow-sm" id="apiTestCard" style="display: none;">
+    <div class="card-header bg-info text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-flask me-2"></i>API Testing Configuration
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">API Endpoint URL</label>
+                <input type="text" id="apiEndpoint" class="form-control" 
+                       placeholder="https://api.example.com/fraud-detect" 
+                       value="https://10.10.110.107:443/validate-chat">
+                <div class="form-text">Enter the fraud detection API endpoint</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">API Headers (JSON)</label>
+                <textarea id="apiHeaders" class="form-control" rows="3" 
+                          placeholder='{"Authorization": "Bearer your-token", "Content-Type": "application/json"}'>{"Content-Type": "application/json", "Authorization": "Bearer {{API_KEY}}"}</textarea>
+                <div class="form-text">JSON object with request headers</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generated Scenarios Display -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-code me-2 text-success"></i>Generated Scenarios
+            <span class="badge bg-success ms-2" id="generatedCount">0</span>
+        </h5>
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" onclick="copyAllToClipboard()">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+            <button class="btn btn-outline-secondary" onclick="downloadJson()">
+                <i class="fas fa-download"></i> Download
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="outputContainer">
+            <div class="text-muted text-center py-4">
+                <i class="fas fa-info-circle me-2"></i>
+                Click "Generate Random Scenarios" to create sample API requests...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scenario Statistics -->
+<div class="row" id="statsRow" style="display: none;">
+    <div class="col-md-3">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <i class="fas fa-shield-alt text-success fa-2x mb-2"></i>
+                <h5 class="card-title text-success" id="lowRiskCount">0</h5>
+                <p class="card-text small">Low Risk</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                <h5 class="card-title text-warning" id="mediumRiskCount">0</h5>
+                <p class="card-text small">Medium Risk</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-danger">
+            <div class="card-body">
+                <i class="fas fa-skull text-danger fa-2x mb-2"></i>
+                <h5 class="card-title text-danger" id="highRiskCount">0</h5>
+                <p class="card-text small">High Risk</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-info">
+            <div class="card-body">
+                <i class="fas fa-database text-info fa-2x mb-2"></i>
+                <h5 class="card-title text-info" id="savedCount">0</h5>
+                <p class="card-text small">Saved to DB</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .scenario-row:hover {
+        background-color: #f8f9fa;
+    }
+    .json-display {
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        padding: 15px;
+        white-space: pre-wrap;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .scenario-card {
+        border-left: 4px solid #007bff;
+        margin-bottom: 10px;
+    }
+    .scenario-card.risk-low {
+        border-left-color: #28a745;
+    }
+    .scenario-card.risk-medium {
+        border-left-color: #ffc107;
+    }
+    .scenario-card.risk-high {
+        border-left-color: #dc3545;
+    }
+    .loading {
+        position: relative;
+        overflow: hidden;
+    }
+    .loading::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+        animation: loading 1.5s infinite;
+    }
+    @@keyframes loading {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+</style>
+
+<script>
+    // Global variables
+    let currentScenarios = [];
+    let savedScenariosCache = [];
+    
+    // Data arrays for generating random scenarios
+    const userProfiles = [
+        "This Customer is a regular grocery trader",
+        "New customer with limited transaction history",
+        "Customer is a small business owner",
+        "Salaried individual",
+        "Customer is a freelancer",
+        "Corporate account with high volume activity",
+        "Individual customer with mostly ATM cash withdrawals",
+        "Small shopkeeper, usually deposits daily sales at branch",
+        "Regular utility bill payer",
+        "Student account with parent deposits",
+        "Pensioner account",
+        "Export business with regular foreign transfers",
+        "Online merchant with e-commerce activity",
+        "Construction business owner",
+        "Medical practitioner with clinic income"
+    ];
+
+    const userActivities = [
+        "Today made 18 transactions",
+        "Today made 3 transactions",
+        "Typically makes 5–7 transactions daily",
+        "Usually 2–3 salary transfers per month",
+        "Receives foreign remittances monthly",
+        "Usually transfers 50–70 lakh daily",
+        "Recently showed higher activity than usual",
+        "Unusual number of outward transfers today",
+        "1 transaction only",
+        "Today made 5 transactions",
+        "Today made 1 transaction",
+        "First transaction in 6 months",
+        "Weekly bulk transfers",
+        "Daily cash deposits",
+        "Monthly utility payments"
+    ];
+
+    const fromNames = [
+        "HUSSAIN TRADERS", "UMER ALI", "MALIK TRADERS", "AHMED ENTERPRISES", 
+        "WESTERN UNION", "STAR IMPORTS LLC", "BILAL AHMAD", "RASHID STORE",
+        "KASHIF MALIK", "HASSAN RAZA", "FATIMA TEXTILES", "KARACHI STEEL",
+        "LAHORE MOTORS", "ISLAMABAD TECH", "MULTAN FOODS", "FAISALABAD COTTON",
+        "RAWALPINDI AUTO", "PESHAWAR TRADERS", "QUETTA MINERALS", "SIALKOT SPORTS"
+    ];
+
+    const toNames = [
+        "K-ELECTRIC", "GLOBAL IMPORTS", "HESCO BILLING", "KASHIF MALIK", 
+        "HASSAN RAZA", "ASIA GLOBAL", "EASYPAISA WALLET", "SELF ACCOUNT",
+        "UTILITY COMPANY", "MOBILE ACCOUNT", "DARAZ PAKISTAN", "FOOD PANDA",
+        "UBER PAKISTAN", "CAREEM WALLET", "JAZZ CASH", "TELENOR BANK",
+        "BANK ALFALAH", "HBL KONNECT", "MCB LITE", "NBP DIGITAL"
+    ];
+
+    const transactionComments = [
+        "Electricity Bill", "Urgent Import Settlement", "Electricity bill for warehouse",
+        "Employee salary transfer", "Freelance payment", "Container clearance payment",
+        "Load wallet for shopping", "Daily deposit of shop sales", "Monthly utility bill",
+        "Emergency medical payment", "School fee payment", "Rent payment",
+        "Business investment", "Equipment purchase", "Raw material payment",
+        "Export proceeds", "Insurance premium", "Loan installment",
+        "Dividend payment", "Charity donation"
+    ];
+
+    const activityCodes = [
+        "Bill Payment", "Raast FT", "Fund Transfer", "Credit Inflow", 
+        "Cash Deposit", "Wallet Load", "Utility Payment", "Salary Transfer",
+        "Business Payment", "International Transfer", "Mobile Banking",
+        "ATM Transaction", "Online Purchase", "Insurance Payment"
+    ];
+
+    const banks = [
+        "HABBPKKA001", "MCBLPKKA001", "HBLPKKA001", "MCBPKKA002", 
+        "NBPAPKKA004", "UBLPKKA007", "HBLPKKA009", "BAHL12345",
+        "ALFAPKKA", "MEZNPKKA", "JSBLPKKA", "BAFLPKKA", "FAYSPKKA"
+    ];
+
+    // Generate random scenarios with enhanced features
+    async function generateRandomScenarios() {
+        const count = parseInt(document.getElementById('scenarioCount').value);
+        const format = document.getElementById('outputFormat').value;
+        const riskFocus = document.getElementById('riskFocus').value;
+        const saveToDb = document.getElementById('saveToDb').checked;
+        
+        // Show loading state
+        setLoadingState(true);
+        
+        try {
+            let scenarios;
+            if (saveToDb) {
+                // Generate scenarios via API to save to database
+                const response = await fetch('/api/generations/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        count: count,
+                        riskFocus: riskFocus,
+                        saveToDatabase: true
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Handle new DTO response format
+                    if (result.success && result.data && result.data.scenarios) {
+                        scenarios = result.data.scenarios;
+                    } else {
+                        // Fallback for old format
+                        scenarios = result.scenarios || result || [];
+                    }
+                    
+                    // Ensure scenarios is an array
+                    if (!Array.isArray(scenarios)) {
+                        scenarios = [];
+                        throw new Error('Invalid response format: expected array of scenarios');
+                    }
+                    
+                    const message = result.message || `Generated and saved ${scenarios.length} scenarios to database!`;
+                    showToast(message);
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMessage = errorData.message || errorData.error || response.statusText;
+                    throw new Error(`API Error ${response.status}: ${errorMessage}`);
+                }
+            } else {
+                // Generate scenarios client-side only
+                scenarios = [];
+                for (let i = 0; i < count; i++) {
+                    scenarios.push(generateSingleScenario(riskFocus));
+                }
+            }
+            
+            // Ensure scenarios is an array and has content
+            if (!Array.isArray(scenarios) || scenarios.length === 0) {
+                throw new Error('No scenarios were generated or returned');
+            }
+            
+            currentScenarios = scenarios;
+            displayScenarios(scenarios, format);
+            updateStatistics(scenarios);
+            
+            // Enable bulk test button if scenarios are available
+            document.getElementById('bulkTestBtn').disabled = scenarios.length === 0;
+            
+        } catch (error) {
+            console.error('Failed to generate scenarios:', error);
+            showToast('Failed to generate scenarios: ' + error.message, 'error');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+
+    // Generate & Test API functionality
+    async function generateAndTestApi() {
+        document.getElementById('apiTestCard').style.display = 'block';
+        await generateRandomScenarios();
+        
+        if (currentScenarios.length > 0) {
+            // Test the first scenario
+            await testSingleScenario(currentScenarios[0]);
+        }
+    }
+
+    // Test single scenario against API
+    async function testSingleScenario(scenario) {
+        const endpoint = document.getElementById('apiEndpoint').value;
+        const headers = JSON.parse(document.getElementById('apiHeaders').value || '{}');
+        
+        try {
+            const startTime = Date.now();
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(scenario)
+            });
+            const endTime = Date.now();
+            const responseTime = endTime - startTime;
+            
+            const result = await response.text();
+            
+            showToast(`API test completed in ${responseTime}ms`, response.ok ? 'success' : 'error');
+            return {
+                success: response.ok,
+                responseTime: responseTime,
+                response: result,
+                status: response.status
+            };
+        } catch (error) {
+            showToast('API test failed: ' + error.message, 'error');
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    // Display scenarios in the chosen format
+    function displayScenarios(scenarios, format) {
+        const container = document.getElementById('outputContainer');
+        
+        if (format === 'json') {
+            container.innerHTML = `<div class="json-display">${JSON.stringify(scenarios, null, 2)}</div>`;
+        } else {
+            // Table format
+            let tableHtml = `
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Risk Level</th>
+                                <th>User Profile</th>
+                                <th>Amount</th>
+                                <th>From Name</th>
+                                <th>To Name</th>
+                                <th>Activity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            scenarios.forEach((scenario, index) => {
+                // Handle both API response format and client-generated format
+                let riskScore, riskLevel, profile, amount, fromName, toName, activity;
+                
+                if (scenario.messages && scenario.messages[0] && scenario.messages[0].content) {
+                    // Client-generated format
+                    const content = scenario.messages[0].content;
+                    const riskMatch = content.match(/Amount Risk Score: (\d+)/);
+                    riskScore = riskMatch ? parseInt(riskMatch[1]) : 0;
+                    
+                    const profileMatch = content.match(/- (.*?Customer.*?)\./);
+                    profile = profileMatch ? profileMatch[1] : 'Unknown';
+                    
+                    const amountMatch = content.match(/Amount: (\d+)/);
+                    amount = amountMatch ? parseInt(amountMatch[1]).toLocaleString() : 'Unknown';
+                    
+                    const fromNameMatch = content.match(/FromName: ([^\n]+)/);
+                    fromName = fromNameMatch ? fromNameMatch[1] : 'Unknown';
+                    
+                    const toNameMatch = content.match(/ToName: ([^\n]+)/);
+                    toName = toNameMatch ? toNameMatch[1] : 'Unknown';
+                    
+                    const activityMatch = content.match(/ActivityCode: ([^\n]+)/);
+                    activity = activityMatch ? activityMatch[1] : 'Unknown';
+                } else {
+                    // API response format
+                    riskScore = scenario.amountRiskScore || 0;
+                    profile = scenario.userProfile || 'Unknown';
+                    amount = scenario.amount ? scenario.amount.toLocaleString() : 'Unknown';
+                    fromName = scenario.fromName || 'Unknown';
+                    toName = scenario.toName || 'Unknown';
+                    activity = scenario.activityCode || 'Unknown';
+                }
+                
+                riskLevel = riskScore <= 3 ? 'Low' : riskScore <= 6 ? 'Medium' : 'High';
+                const riskClass = riskLevel.toLowerCase();
+                
+                tableHtml += `
+                    <tr class="scenario-row">
+                        <td>
+                            <span class="badge bg-${riskClass === 'low' ? 'success' : riskClass === 'medium' ? 'warning' : 'danger'}">
+                                ${riskLevel} (${riskScore})
+                            </span>
+                        </td>
+                        <td>${profile.substring(0, 40)}${profile.length > 40 ? '...' : ''}</td>
+                        <td>PKR ${amount}</td>
+                        <td>${fromName}</td>
+                        <td>${toName}</td>
+                        <td>${activity}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewScenarioDetails(${index})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="testScenario(${index})">
+                                <i class="fas fa-play"></i> Test
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHtml += '</tbody></table></div>';
+            container.innerHTML = tableHtml;
+        }
+        
+        document.getElementById('generatedCount').textContent = scenarios.length;
+    }
+
+    // Update statistics display
+    function updateStatistics(scenarios) {
+        let lowCount = 0, mediumCount = 0, highCount = 0, savedCount = 0;
+        
+        scenarios.forEach(scenario => {
+            let riskScore;
+            
+            // Handle both API response format and client-generated format
+            if (scenario.messages && scenario.messages[0] && scenario.messages[0].content) {
+                // Client-generated format
+                const content = scenario.messages[0].content;
+                const riskMatch = content.match(/Amount Risk Score: (\d+)/);
+                riskScore = riskMatch ? parseInt(riskMatch[1]) : 0;
+            } else {
+                // API response format
+                riskScore = scenario.amountRiskScore || 0;
+            }
+            
+            if (riskScore <= 3) lowCount++;
+            else if (riskScore <= 6) mediumCount++;
+            else highCount++;
+            
+            if (scenario.id || scenario.Id) savedCount++; // Check both possible ID formats
+        });
+        
+        document.getElementById('lowRiskCount').textContent = lowCount;
+        document.getElementById('mediumRiskCount').textContent = mediumCount;
+        document.getElementById('highRiskCount').textContent = highCount;
+        document.getElementById('savedCount').textContent = savedCount;
+        document.getElementById('statsRow').style.display = scenarios.length > 0 ? 'flex' : 'none';
+    }
+
+    // Load saved scenarios from database
+    async function loadSavedScenarios() {
+        setLoadingState(true);
+        
+        try {
+            const response = await fetch('/api/generations?pageSize=50');
+            if (response.ok) {
+                const scenarios = await response.json();
+                
+                savedScenariosCache = scenarios;
+                
+                // Convert to API format for display
+                const apiScenarios = scenarios.map(s => ({
+                    model: "fraud-detector:stable",
+                    messages: [{
+                        role: "user",
+                        content: s.generatedPrompt || createPromptFromScenario(s)
+                    }],
+                    stream: false,
+                    id: s.id,
+                    isSaved: true,
+                    metadata: {
+                        name: s.name,
+                        riskLevel: s.riskLevel,
+                        amount: s.amount,
+                        generatedAt: s.generatedAt,
+                        isTested: s.isTested
+                    }
+                }));
+                
+                currentScenarios = apiScenarios;
+                displayScenarios(apiScenarios, document.getElementById('outputFormat').value);
+                updateStatistics(apiScenarios);
+                
+                showToast(`Loaded ${scenarios.length} saved scenarios from database!`);
+            } else {
+                throw new Error(`Failed to load scenarios: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Failed to load scenarios:', error);
+            showToast('Failed to load saved scenarios: ' + error.message, 'error');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+    
+    // Load favorite scenarios
+    async function loadFavorites() {
+        setLoadingState(true);
+        
+        try {
+            const response = await fetch('/api/generations/favorites');
+            if (response.ok) {
+                const favorites = await response.json();
+                
+                // Convert to API format for display
+                const apiScenarios = favorites.map(s => ({
+                    model: "fraud-detector:stable",
+                    messages: [{
+                        role: "user",
+                        content: s.generatedPrompt || createPromptFromScenario(s)
+                    }],
+                    stream: false,
+                    id: s.id,
+                    isFavorite: true,
+                    metadata: {
+                        name: s.name,
+                        riskLevel: s.riskLevel,
+                        amount: s.amount,
+                        generatedAt: s.generatedAt,
+                        isTested: s.isTested
+                    }
+                }));
+                
+                currentScenarios = apiScenarios;
+                displayScenarios(apiScenarios, document.getElementById('outputFormat').value);
+                updateStatistics(apiScenarios);
+                
+                showToast(`Loaded ${favorites.length} favorite scenarios!`);
+            } else {
+                throw new Error(`Failed to load favorites: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Failed to load favorites:', error);
+            showToast('Failed to load favorite scenarios: ' + error.message, 'error');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+    
+    // Load random scenarios from database
+    async function loadRandomFromDB() {
+        const riskFocus = document.getElementById('riskFocus').value;
+        const count = parseInt(document.getElementById('scenarioCount').value);
+        
+        setLoadingState(true);
+        
+        try {
+            const scenarios = [];
+            
+            // Get random scenarios from database
+            for (let i = 0; i < count; i++) {
+                const response = await fetch(`/api/generations/random?riskLevel=${riskFocus}`);
+                if (response.ok) {
+                    const randomScenario = await response.json();
+                    scenarios.push({
+                        model: "fraud-detector:stable",
+                        messages: [{
+                            role: "user",
+                            content: randomScenario.generatedPrompt || createPromptFromScenario(randomScenario)
+                        }],
+                        stream: false,
+                        id: randomScenario.id,
+                        isRandomFromDB: true,
+                        metadata: {
+                            name: randomScenario.name,
+                            riskLevel: randomScenario.riskLevel,
+                            amount: randomScenario.amount,
+                            generatedAt: randomScenario.generatedAt
+                        }
+                    });
+                } else {
+                    console.warn(`Could not fetch random scenario ${i + 1}`);
+                }
+            }
+            
+            if (scenarios.length === 0) {
+                throw new Error('No scenarios available in database');
+            }
+            
+            currentScenarios = scenarios;
+            displayScenarios(scenarios, document.getElementById('outputFormat').value);
+            updateStatistics(scenarios);
+            
+            showToast(`Loaded ${scenarios.length} random scenarios from database!`);
+        } catch (error) {
+            console.error('Failed to load random scenarios:', error);
+            showToast('Failed to load random scenarios: ' + error.message, 'error');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+    
+    // Create prompt from scenario data (for backwards compatibility)
+    function createPromptFromScenario(scenario) {
+        return `User Profile Summary:
+- ${scenario.userProfile || 'Customer profile'}.
+- ${scenario.userActivity || 'Transaction activity'}.
+
+Transaction Context:
+- Amount Risk Score: ${scenario.amountRiskScore}
+- Amount Z-Score: ${scenario.amountZScore}
+- High Amount Flag: ${scenario.highAmountFlag ? 'Yes' : 'No'}
+
+Transaction Details:
+- FromName: ${scenario.fromName}
+- ToName: ${scenario.toName}
+- Amount: ${scenario.amount}
+- ActivityCode: ${scenario.activityCode}
+- UserType: ${scenario.userType}`;
+    }
+
+    // Clear all data
+    function clearAll() {
+        currentScenarios = [];
+        document.getElementById('outputContainer').innerHTML = `
+            <div class="text-muted text-center py-4">
+                <i class="fas fa-info-circle me-2"></i>
+                Click "Generate Random Scenarios" to create sample API requests...
+            </div>
+        `;
+        document.getElementById('generatedCount').textContent = '0';
+        document.getElementById('statsRow').style.display = 'none';
+        document.getElementById('bulkTestBtn').disabled = true;
+    }
+
+    // Copy all to clipboard
+    async function copyAllToClipboard() {
+        if (currentScenarios.length === 0) {
+            showToast('No scenarios to copy!', 'error');
+            return;
+        }
+        
+        try {
+            const jsonData = JSON.stringify(currentScenarios, null, 2);
+            await navigator.clipboard.writeText(jsonData);
+            showToast('All scenarios copied to clipboard!');
+        } catch (error) {
+            showToast('Failed to copy to clipboard: ' + error.message, 'error');
+        }
+    }
+
+    // Download JSON file
+    function downloadJson() {
+        if (currentScenarios.length === 0) {
+            showToast('No scenarios to download!', 'error');
+            return;
+        }
+        
+        const dataStr = JSON.stringify(currentScenarios, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `fraud_scenarios_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast('Scenarios downloaded successfully!');
+    }
+
+    // Set loading state
+    function setLoadingState(loading) {
+        const generateBtn = document.getElementById('generateBtn');
+        const generateAndTestBtn = document.getElementById('generateAndTestBtn');
+        
+        if (loading) {
+            generateBtn.disabled = true;
+            generateAndTestBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating...';
+            generateAndTestBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Working...';
+        } else {
+            generateBtn.disabled = false;
+            generateAndTestBtn.disabled = false;
+            generateBtn.innerHTML = '<i class="fas fa-dice me-2"></i> Generate Random Scenarios';
+            generateAndTestBtn.innerHTML = '<i class="fas fa-play-circle me-2"></i> Generate & Test API';
+        }
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+        toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 250px;';
+        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-1"></i>${message}`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 4000);
+    }
+
+    // Generate single scenario (client-side)
+    function generateSingleScenario(riskFocus) {
+        const riskLevel = getRiskLevel(riskFocus);
+        const profile = getRandomElement(userProfiles);
+        const activity = getRandomElement(userActivities);
+        const fromName = getRandomElement(fromNames);
+        const toName = getRandomElement(toNames);
+        const comment = getRandomElement(transactionComments);
+        const activityCode = getRandomElement(activityCodes);
+        const bank = getRandomElement(banks);
+        
+        // Generate random values based on risk level
+        const amount = generateAmount(riskLevel);
+        const cnic = generateCNIC();
+        const fromAccount = generateAccount();
+        const toAccount = generateIBAN();
+        const userId = generateUserId();
+        const dateTime = generateDateTime();
+        
+        // Generate context based on risk level
+        const context = generateTransactionContext(riskLevel);
+        const watchlist = generateWatchlistIndicators(riskLevel);
+        
+        return {
+            model: "fraud-detector:stable",
+            messages: [
+                {
+                    role: "user",
+                    content: `User Profile Summary:
+- ${profile}.
+- ${activity}.
+
+Transaction Context:
+- Amount Risk Score: ${context.amountRiskScore}
+- Amount Z-Score: ${context.amountZScore}
+- High Amount Flag: ${context.highAmountFlag}
+- New Activity Code: ${context.newActivityCode}
+- New NewFrom Account: ${context.newFromAccount}
+- New To Account: ${context.newToAccount}
+- New To City: ${context.newToCity}
+- Outside Usual Day: ${context.outsideUsualDay}
+
+Watchlist Indicators:
+- FromAccount: ${watchlist.fromAccount}
+- FromName: ${watchlist.fromName}
+- ToAccount: ${watchlist.toAccount}
+- ToName: ${watchlist.toName}
+- ToBank: ${watchlist.toBank}
+- IPAddress: ${watchlist.ipAddress}
+
+Transaction Details:
+- CNIC: ${cnic}
+- FromAccount: ${fromAccount}
+${context.newFromAccount === 'Yes' ? '- New NewFrom Account: Yes\n' : ''}- LogDescription: ${comment}
+- UserId: ${userId}
+- FromName: ${fromName}
+- ToAccount: ${toAccount}
+- ToName: ${toName}
+- ToBank: ${bank}
+- Amount: ${amount}
+- DateTime: ${dateTime}
+- ActivityCode: ${activityCode}
+- UserType: ${getRandomElement(['MOBILE', 'WEB', 'BRANCH', 'API'])}
+- TransactionComments: ${comment}`
+                }
+            ],
+            stream: false
+        };
+    }
+
+    // Helper functions
+    function getRandomElement(array) {
+        return array[Math.floor(Math.random() * array.length)];
+    }
+
+    function getRiskLevel(focus) {
+        if (focus === 'low') return 'low';
+        if (focus === 'medium') return 'medium';
+        if (focus === 'high') return 'high';
+        return getRandomElement(['low', 'medium', 'high']);
+    }
+
+    function generateAmount(riskLevel) {
+        if (riskLevel === 'low') return Math.floor(Math.random() * 50000) + 1000;
+        if (riskLevel === 'medium') return Math.floor(Math.random() * 500000) + 50000;
+        return Math.floor(Math.random() * 10000000) + 500000;
+    }
+
+    function generateCNIC() {
+        return `CN4210${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}`;
+    }
+
+    function generateAccount() {
+        return Math.floor(Math.random() * 9000000000000000) + 1000000000000000;
+    }
+
+    function generateIBAN() {
+        const banks = ['HBL', 'MCB', 'NBP', 'UBL', 'BAHL'];
+        const bank = getRandomElement(banks);
+        const number = Math.floor(Math.random() * 900000000000000) + 100000000000000;
+        return `PK${Math.floor(Math.random() * 90) + 10}${bank}00${number}`;
+    }
+
+    function generateUserId() {
+        const prefixes = ['user', 'shop', 'corp', 'cust'];
+        return getRandomElement(prefixes) + Math.floor(Math.random() * 1000);
+    }
+
+    function generateDateTime() {
+        const now = new Date();
+        const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+        const randomTime = new Date(start.getTime() + Math.random() * (now.getTime() - start.getTime()));
+        return randomTime.toLocaleString();
+    }
+
+    function generateTransactionContext(riskLevel) {
+        let amountRiskScore, amountZScore, highAmountFlag;
+        let newActivityCode, newFromAccount, newToAccount, newToCity, outsideUsualDay;
+        
+        if (riskLevel === 'low') {
+            amountRiskScore = Math.floor(Math.random() * 3) + 1;
+            amountZScore = (Math.random() * 1.5).toFixed(1);
+            highAmountFlag = 'No';
+            newActivityCode = Math.random() > 0.8 ? 'Yes' : 'No';
+            newFromAccount = Math.random() > 0.9 ? 'Yes' : 'No';
+            newToAccount = Math.random() > 0.7 ? 'Yes' : 'No';
+            newToCity = Math.random() > 0.8 ? 'Yes' : 'No';
+            outsideUsualDay = Math.random() > 0.9 ? 'Yes' : 'No';
+        } else if (riskLevel === 'medium') {
+            amountRiskScore = Math.floor(Math.random() * 3) + 3;
+            amountZScore = (Math.random() * 1.5 + 1.0).toFixed(1);
+            highAmountFlag = Math.random() > 0.5 ? 'Yes' : 'No';
+            newActivityCode = Math.random() > 0.6 ? 'Yes' : 'No';
+            newFromAccount = Math.random() > 0.7 ? 'Yes' : 'No';
+            newToAccount = Math.random() > 0.5 ? 'Yes' : 'No';
+            newToCity = Math.random() > 0.6 ? 'Yes' : 'No';
+            outsideUsualDay = Math.random() > 0.7 ? 'Yes' : 'No';
+        } else {
+            amountRiskScore = Math.floor(Math.random() * 4) + 6;
+            amountZScore = (Math.random() * 2.0 + 2.0).toFixed(1);
+            highAmountFlag = 'Yes';
+            newActivityCode = Math.random() > 0.4 ? 'Yes' : 'No';
+            newFromAccount = Math.random() > 0.4 ? 'Yes' : 'No';
+            newToAccount = Math.random() > 0.3 ? 'Yes' : 'No';
+            newToCity = Math.random() > 0.4 ? 'Yes' : 'No';
+            outsideUsualDay = Math.random() > 0.5 ? 'Yes' : 'No';
+        }
+        
+        return {
+            amountRiskScore,
+            amountZScore,
+            highAmountFlag,
+            newActivityCode,
+            newFromAccount,
+            newToAccount,
+            newToCity,
+            outsideUsualDay
+        };
+    }
+
+    function generateWatchlistIndicators(riskLevel) {
+        const baseProb = riskLevel === 'high' ? 0.3 : (riskLevel === 'medium' ? 0.15 : 0.05);
+        
+        return {
+            fromAccount: Math.random() < baseProb ? 'Yes' : 'No',
+            fromName: Math.random() < baseProb ? 'Yes' : 'No',
+            toAccount: Math.random() < baseProb ? 'Yes' : 'No',
+            toName: Math.random() < baseProb ? 'Yes' : 'No',
+            toBank: Math.random() < baseProb ? 'Yes' : 'No',
+            ipAddress: Math.random() < baseProb ? 'Yes' : 'No'
+        };
+    }
+
+    // View scenario details
+    function viewScenarioDetails(index) {
+        if (index < currentScenarios.length) {
+            const scenario = currentScenarios[index];
+            const modal = createScenarioModal(scenario, index);
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+    }
+
+    // Create scenario detail modal
+    function createScenarioModal(scenario, index) {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = `scenarioModal${index}`;
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-eye me-2"></i>Scenario Details #${index + 1}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="json-display">${JSON.stringify(scenario, null, 2)}</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" onclick="copyScenario(${index})">
+                            <i class="fas fa-copy me-1"></i> Copy JSON
+                        </button>
+                        <button class="btn btn-success" onclick="testScenario(${index})">
+                            <i class="fas fa-play me-1"></i> Test API
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Auto-remove modal when hidden
+        modal.addEventListener('hidden.bs.modal', () => modal.remove());
+        
+        return modal;
+    }
+
+    // Copy individual scenario
+    async function copyScenario(index) {
+        if (index < currentScenarios.length) {
+            try {
+                const jsonData = JSON.stringify(currentScenarios[index], null, 2);
+                await navigator.clipboard.writeText(jsonData);
+                showToast(`Scenario #${index + 1} copied to clipboard!`);
+            } catch (error) {
+                showToast('Failed to copy scenario', 'error');
+            }
+        }
+    }
+
+    // Test individual scenario
+    async function testScenario(index) {
+        if (index < currentScenarios.length) {
+            const result = await testSingleScenario(currentScenarios[index]);
+            // Could display results or update UI based on test result
+        }
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        setupEventListeners();
+    });
+
+    // Setup event listeners
+    function setupEventListeners() {
+        document.getElementById('generateBtn').addEventListener('click', generateRandomScenarios);
+        document.getElementById('generateAndTestBtn').addEventListener('click', generateAndTestApi);
+        
+        // Output format change handler
+        document.getElementById('outputFormat').addEventListener('change', function() {
+            if (currentScenarios.length > 0) {
+                displayScenarios(currentScenarios, this.value);
+            }
+        });
+    }
+</script>
+}
