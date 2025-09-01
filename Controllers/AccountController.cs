@@ -32,18 +32,18 @@ namespace FraudDetectorWebApp.Controllers
             try
             {
                 // Validate request
-                if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+                if(string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
                 {
                     return BadRequest(new { message = "Email and password are required." });
                 }
 
-                if (request.Password != request.ConfirmPassword)
+                if(request.Password != request.ConfirmPassword)
                 {
                     return BadRequest(new { message = "Passwords do not match." });
                 }
 
                 // Check if user already exists
-                if (await _userRepository.EmailExistsAsync(request.Email))
+                if(await _userRepository.EmailExistsAsync(request.Email))
                 {
                     return BadRequest(new { message = "A user with this email already exists." });
                 }
@@ -69,14 +69,14 @@ namespace FraudDetectorWebApp.Controllers
 
                 _logger.LogInformation("New user registered: {Email}", user.Email);
 
-                return Ok(new ApiResponseDto<object>
-                {
-                    Success = true,
-                    Message = "Registration successful! Please login with your credentials.",
-                    Data = null
-                });
-            }
-            catch (Exception ex)
+                return Ok(
+                    new ApiResponseDto<object>
+                    {
+                        Success = true,
+                        Message = "Registration successful! Please login with your credentials.",
+                        Data = null
+                    });
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Error during user registration");
                 return StatusCode(500, new { message = "An error occurred during registration. Please try again." });
@@ -89,7 +89,7 @@ namespace FraudDetectorWebApp.Controllers
             try
             {
                 // Validate request
-                if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+                if(string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
                 {
                     return BadRequest(new { message = "Email and password are required." });
                 }
@@ -97,7 +97,7 @@ namespace FraudDetectorWebApp.Controllers
                 // Find user
                 var user = await _userRepository.GetByEmailAsync(request.Email);
 
-                if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
+                if(user == null || !VerifyPassword(request.Password, user.PasswordHash))
                 {
                     return BadRequest(new { message = "Invalid email or password." });
                 }
@@ -135,15 +135,15 @@ namespace FraudDetectorWebApp.Controllers
                     CreatedAt = user.CreatedAt,
                     LastLoginAt = user.LastLoginAt
                 };
-                
-                return Ok(new ApiResponseDto<UserDto>
-                {
-                    Success = true,
-                    Message = "Login successful! Welcome back.",
-                    Data = userDto
-                });
-            }
-            catch (Exception ex)
+
+                return Ok(
+                    new ApiResponseDto<UserDto>
+                    {
+                        Success = true,
+                        Message = "Login successful! Welcome back.",
+                        Data = userDto
+                    });
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Error during user login");
                 return StatusCode(500, new { message = "An error occurred during login. Please try again." });
@@ -157,14 +157,8 @@ namespace FraudDetectorWebApp.Controllers
             try
             {
                 await HttpContext.SignOutAsync("Cookies");
-                return Ok(new ApiResponseDto<object>
-                {
-                    Success = true,
-                    Message = "Logout successful!",
-                    Data = null
-                });
-            }
-            catch (Exception ex)
+                return Ok(new ApiResponseDto<object> { Success = true, Message = "Logout successful!", Data = null });
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Error during logout");
                 return StatusCode(500, new { message = "An error occurred during logout." });
@@ -180,7 +174,7 @@ namespace FraudDetectorWebApp.Controllers
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
                 var user = await _userRepository.GetByIdAsync(userId);
 
-                if (user == null)
+                if(user == null)
                 {
                     return NotFound(new { message = "User not found." });
                 }
@@ -198,15 +192,15 @@ namespace FraudDetectorWebApp.Controllers
                     CreatedAt = user.CreatedAt,
                     LastLoginAt = user.LastLoginAt
                 };
-                
-                return Ok(new ApiResponseDto<UserDto>
-                {
-                    Success = true,
-                    Message = "User information retrieved successfully",
-                    Data = userDto
-                });
-            }
-            catch (Exception ex)
+
+                return Ok(
+                    new ApiResponseDto<UserDto>
+                    {
+                        Success = true,
+                        Message = "User information retrieved successfully",
+                        Data = userDto
+                    });
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Error getting current user");
                 return StatusCode(500, new { message = "An error occurred while getting user information." });

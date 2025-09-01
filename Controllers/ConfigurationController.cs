@@ -77,7 +77,7 @@ namespace FraudDetectorWebApp.Controllers
                     })
                 .FirstOrDefaultAsync();
 
-            if(config == null)
+            if (config == null)
                 return NotFound();
 
             return config;
@@ -96,11 +96,11 @@ namespace FraudDetectorWebApp.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateConfiguration(int id, ApiConfiguration configuration)
         {
-            if(id != configuration.Id)
+            if (id != configuration.Id)
                 return BadRequest();
 
             var existingConfig = await _context.ApiConfigurations.FindAsync(id);
-            if(existingConfig == null)
+            if (existingConfig == null)
                 return NotFound();
 
             existingConfig.Name = configuration.Name;
@@ -119,7 +119,7 @@ namespace FraudDetectorWebApp.Controllers
         public async Task<IActionResult> DeleteConfiguration(int id)
         {
             var configuration = await _context.ApiConfigurations.FindAsync(id);
-            if(configuration == null)
+            if (configuration == null)
                 return NotFound();
 
             _context.ApiConfigurations.Remove(configuration);
@@ -132,13 +132,13 @@ namespace FraudDetectorWebApp.Controllers
         public async Task<IActionResult> StartConfiguration(int id)
         {
             var configuration = await _context.ApiConfigurations.FindAsync(id);
-            if(configuration == null)
+            if (configuration == null)
                 return NotFound();
 
             configuration.IsActive = true;
             await _context.SaveChangesAsync();
 
-            if(!_apiRequestService.IsRunning)
+            if (!_apiRequestService.IsRunning)
             {
                 await _apiRequestService.StartLoop();
             }
@@ -150,7 +150,7 @@ namespace FraudDetectorWebApp.Controllers
         public async Task<IActionResult> StopConfiguration(int id)
         {
             var configuration = await _context.ApiConfigurations.FindAsync(id);
-            if(configuration == null)
+            if (configuration == null)
                 return NotFound();
 
             configuration.IsActive = false;
@@ -174,7 +174,7 @@ namespace FraudDetectorWebApp.Controllers
             // Also mark all configurations as inactive
             var activeConfigs = await _context.ApiConfigurations.Where(c => c.IsActive).ToListAsync();
 
-            foreach(var config in activeConfigs)
+            foreach (var config in activeConfigs)
             {
                 config.IsActive = false;
             }

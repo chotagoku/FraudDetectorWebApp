@@ -1,6 +1,8 @@
 using FraudDetectorWebApp.Data;
 using FraudDetectorWebApp.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace FraudDetectorWebApp.Services
@@ -31,10 +33,55 @@ namespace FraudDetectorWebApp.Services
             }
         }
 
+        // Method to manually create/update admin user for testing
+        public async Task ManuallyCreateAdminUserAsync()
+        {
+            try
+            {
+                var adminEmail = "admin@test.com";
+                var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+
+                if (adminUser == null)
+                {
+                    // Create new admin user
+                    var newAdminUser = new User
+                    {
+                        FirstName = "Test",
+                        LastName = "Admin",
+                        Email = adminEmail,
+                        PasswordHash = HashPassword("password123"),
+                        Phone = "+92-300-1234567",
+                        Company = "Test Company",
+                        Role = "Admin",
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    };
+
+                    _context.Users.Add(newAdminUser);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Created new admin user: {Email} with role {Role}", newAdminUser.Email, newAdminUser.Role);
+                }
+                else
+                {
+                    // Update existing user to admin
+                    adminUser.Role = "Admin";
+                    adminUser.PasswordHash = HashPassword("password123"); // Reset password for testing
+                    adminUser.IsActive = true;
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Updated existing user {Email} to Admin role", adminUser.Email);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating/updating admin user");
+                throw;
+            }
+        }
+
         private async Task SeedApiConfigurationsAsync()
         {
             var existingConfigs = await _context.ApiConfigurations.ToListAsync();
-            
+
             if (existingConfigs.Any())
             {
                 // Don't update existing configurations to preserve user changes
@@ -123,24 +170,40 @@ namespace FraudDetectorWebApp.Services
 
         private async Task SeedTestUsersAsync()
         {
-            if (!await _context.Users.AnyAsync())
+            // Always check if admin user exists and seed if not
+            var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == "admin@test.com");
+            if (adminUser == null)
             {
                 var testUser = new User
                 {
                     FirstName = "Test",
                     LastName = "Admin",
                     Email = "admin@test.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
+                    PasswordHash = HashPassword("password123"),
                     Phone = "+92-300-1234567",
                     Company = "Test Company",
-                    Role = "Administrator",
+                    Role = "Admin",
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
 
                 _context.Users.Add(testUser);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Seeded test user: {Email}", testUser.Email);
+                _logger.LogInformation("Seeded admin test user: {Email} with role {Role}", testUser.Email, testUser.Role);
+            }
+            else
+            {
+                // If admin user exists but doesn't have Admin role, update it
+                if (adminUser.Role != "Admin")
+                {
+                    adminUser.Role = "Admin";
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Updated existing user {Email} to Admin role", adminUser.Email);
+                }
+                else
+                {
+                    _logger.LogInformation("Admin user {Email} already exists with Admin role", adminUser.Email);
+                }
             }
         }
 
@@ -148,7 +211,7 @@ namespace FraudDetectorWebApp.Services
         {
             var userProfiles = new[]
             {
-                "Regular grocery trader", "Small business owner", "Salaried individual", 
+                "Regular grocery trader", "Small business owner", "Salaried individual",
                 "Corporate account holder", "Export business owner"
             };
 
@@ -264,6 +327,14 @@ Transaction Details:
                 ConfigurationId = 1,
                 IsFavorite = random.NextDouble() < 0.2 // 20% chance of being favorite
             };
+        }
+
+        private static string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var saltedPassword = password + "FraudDetectorSalt2025"; // Use the same salt as AccountController
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(saltedPassword));
+            return Convert.ToBase64String(hashedBytes);
         }
     }
 }

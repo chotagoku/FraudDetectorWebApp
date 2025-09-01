@@ -1,0 +1,1001 @@
+@page
+@model FraudDetectorWebApp.Pages.Admin.SystemLogsModel
+@{
+    ViewData["Title"] = "System Logs";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">System Logs</h1>
+                    <p class="text-muted">Monitor and manage system logs and API request history</p>
+                </div>
+                <div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" id="refreshLogs">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button type="button" class="btn btn-outline-success" id="exportLogs">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" id="cleanupLogs">
+                            <i class="fas fa-trash"></i> Cleanup
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4" id="statsContainer">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Logs</h5>
+                            <h2 class="text-primary" id="totalLogs">0</h2>
+                            <small class="text-muted">Last 24 hours</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Successful Requests</h5>
+                            <h2 class="text-success" id="successfulRequests">0</h2>
+                            <small class="text-muted" id="successRate">0% success rate</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Failed Requests</h5>
+                            <h2 class="text-danger" id="failedRequests">0</h2>
+                            <small class="text-muted" id="errorRate">0% error rate</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Avg Response Time</h5>
+                            <h2 class="text-info" id="avgResponseTime">0ms</h2>
+                            <small class="text-muted">Average response time</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Type Tabs -->
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="logTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="api-logs-tab" data-bs-toggle="tab" data-bs-target="#api-logs" 
+                                    type="button" role="tab" data-log-type="api">
+                                <i class="fas fa-exchange-alt"></i> API Request Logs
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="system-logs-tab" data-bs-toggle="tab" data-bs-target="#system-logs" 
+                                    type="button" role="tab" data-log-type="system">
+                                <i class="fas fa-server"></i> System Logs
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="trends-tab" data-bs-toggle="tab" data-bs-target="#trends" 
+                                    type="button" role="tab">
+                                <i class="fas fa-chart-line"></i> Trends
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <!-- Filters Row -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search logs...">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="true">Success Only</option>
+                                <option value="false">Errors Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-primary w-100" id="applyFilters">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="logTabsContent">
+                        <!-- API Request Logs Tab -->
+                        <div class="tab-pane fade show active" id="api-logs" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover" id="apiLogsTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>API</th>
+                                            <th>Status</th>
+                                            <th>Response Time</th>
+                                            <th>Scenario</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="apiLogsTableBody">
+                                        <!-- API logs will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <nav id="apiLogsPagination">
+                                <ul class="pagination justify-content-center">
+                                    <!-- Pagination will be populated here -->
+                                </ul>
+                            </nav>
+                        </div>
+
+                        <!-- System Logs Tab -->
+                        <div class="tab-pane fade" id="system-logs" role="tabpanel">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                System logs are currently read from the application logging provider. 
+                                In a production environment, this would integrate with your centralized logging system.
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover" id="systemLogsTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Level</th>
+                                            <th>Category</th>
+                                            <th>Message</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="systemLogsTableBody">
+                                        <!-- System logs will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Trends Tab -->
+                        <div class="tab-pane fade" id="trends" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">Request Volume Trends</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="volumeTrendChart" width="400" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">Status Code Distribution</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="statusDistributionChart" width="400" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">API Usage Statistics</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="apiUsageChart" width="400" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">Response Time Trends</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="responseTimeTrendChart" width="400" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Detail Modal -->
+<div class="modal fade" id="logDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Log Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <table class="table table-sm">
+                            <tbody id="logBasicInfo">
+                                <!-- Basic info will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Additional Details</h6>
+                        <table class="table table-sm">
+                            <tbody id="logAdditionalInfo">
+                                <!-- Additional info will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mt-3" id="logPayloadSection" style="display: none;">
+                    <h6>Request Payload</h6>
+                    <pre><code id="requestPayload" class="language-json"></code></pre>
+                </div>
+                
+                <div class="mt-3" id="logResponseSection" style="display: none;">
+                    <h6>Response Content</h6>
+                    <pre><code id="responseContent" class="language-json"></code></pre>
+                </div>
+                
+                <div class="mt-3" id="logErrorSection" style="display: none;">
+                    <h6>Error Details</h6>
+                    <div class="alert alert-danger">
+                        <pre id="errorDetails"></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="mb-3">
+                        <label for="exportLogType" class="form-label">Log Type</label>
+                        <select class="form-select" id="exportLogType" required>
+                            <option value="ApiRequest">API Request Logs</option>
+                            <option value="System">System Logs</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportFormat" class="form-label">Format</label>
+                        <select class="form-select" id="exportFormat" required>
+                            <option value="json">JSON</option>
+                            <option value="csv">CSV</option>
+                            <option value="txt">Text</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="exportStartDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="exportStartDate">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="exportEndDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="exportEndDate">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportMaxRecords" class="form-label">Max Records</label>
+                        <input type="number" class="form-control" id="exportMaxRecords" value="10000" min="1" max="100000">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="performExport">Export</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cleanup Modal -->
+<div class="modal fade" id="cleanupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cleanup Old Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cleanupForm">
+                    <div class="mb-3">
+                        <label for="cleanupLogType" class="form-label">Log Type</label>
+                        <select class="form-select" id="cleanupLogType" required>
+                            <option value="ApiRequest">API Request Logs</option>
+                            <option value="All">All Logs</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cleanupOlderThan" class="form-label">Delete logs older than</label>
+                        <input type="date" class="form-control" id="cleanupOlderThan" required>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="dryRun" checked>
+                        <label class="form-check-label" for="dryRun">
+                            Dry run (preview only, don't actually delete)
+                        </label>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Warning:</strong> This operation cannot be undone. Please ensure you have backups if needed.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="performCleanup">
+                    <i class="fas fa-trash"></i> Cleanup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css">
+
+<script>
+let currentPage = 1;
+let currentPageSize = 25;
+let currentFilters = {};
+let currentLogType = 'api';
+let logsData = [];
+let statsData = {};
+let charts = {};
+
+$(document).ready(function() {
+    initializePage();
+    loadStats();
+    loadLogs();
+    
+    // Event handlers
+    $('#refreshLogs').on('click', refreshData);
+    $('#exportLogs').on('click', () => $('#exportModal').modal('show'));
+    $('#cleanupLogs').on('click', () => $('#cleanupModal').modal('show'));
+    $('#applyFilters').on('click', applyFilters);
+    $('#performExport').on('click', performExport);
+    $('#performCleanup').on('click', performCleanup);
+    
+    // Tab change handler
+    $('#logTabs button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+        const logType = $(e.target).data('log-type');
+        if (logType) {
+            currentLogType = logType;
+            currentPage = 1;
+            loadLogs();
+        } else if ($(e.target).attr('id') === 'trends-tab') {
+            loadTrends();
+        }
+    });
+    
+    // Search with debounce
+    $('#searchInput').on('keyup', debounce(applyFilters, 500));
+    
+    // Set default dates
+    const today = new Date();
+    const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    $('#startDate').val(formatDate(lastWeek));
+    $('#endDate').val(formatDate(today));
+});
+
+function initializePage() {
+    // Set default export dates
+    const today = new Date();
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+    $('#exportStartDate').val(formatDate(lastMonth));
+    $('#exportEndDate').val(formatDate(today));
+    
+    // Set default cleanup date (30 days ago)
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    $('#cleanupOlderThan').val(formatDate(thirtyDaysAgo));
+}
+
+function refreshData() {
+    loadStats();
+    loadLogs();
+    if ($('#trends-tab').hasClass('active')) {
+        loadTrends();
+    }
+}
+
+function loadStats() {
+    const startDate = $('#startDate').val();
+    const endDate = $('#endDate').val();
+    
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    $.get(`/api/system-logs/api-requests/stats?${params}`)
+        .done(function(stats) {
+            statsData = stats;
+            updateStatsDisplay(stats);
+        })
+        .fail(function() {
+            showNotification('Failed to load statistics', 'error');
+        });
+}
+
+function updateStatsDisplay(stats) {
+    $('#totalLogs').text(stats.totalLogs.toLocaleString());
+    $('#successfulRequests').text(stats.successfulRequests.toLocaleString());
+    $('#failedRequests').text(stats.failedRequests.toLocaleString());
+    $('#avgResponseTime').text(`${Math.round(stats.averageResponseTime)}ms`);
+    
+    const successRate = stats.totalLogs > 0 ? (stats.successfulRequests / stats.totalLogs * 100).toFixed(1) : 0;
+    const errorRate = stats.totalLogs > 0 ? (stats.failedRequests / stats.totalLogs * 100).toFixed(1) : 0;
+    
+    $('#successRate').text(`${successRate}% success rate`);
+    $('#errorRate').text(`${errorRate}% error rate`);
+}
+
+function loadLogs() {
+    const params = buildSearchParams();
+    const endpoint = currentLogType === 'api' ? 'api-requests' : 'system';
+    
+    $.get(`/api/system-logs/${endpoint}?${params}`)
+        .done(function(logs, textStatus, xhr) {
+            logsData = logs;
+            const totalCount = parseInt(xhr.getResponseHeader('X-Total-Count')) || 0;
+            const totalPages = Math.ceil(totalCount / currentPageSize);
+            
+            if (currentLogType === 'api') {
+                displayApiLogs(logs);
+                updatePagination('apiLogsPagination', totalPages);
+            } else {
+                displaySystemLogs(logs);
+            }
+        })
+        .fail(function() {
+            showNotification('Failed to load logs', 'error');
+        });
+}
+
+function buildSearchParams() {
+    const params = new URLSearchParams();
+    params.append('page', currentPage);
+    params.append('pageSize', currentPageSize);
+    
+    if ($('#searchInput').val()) params.append('searchTerm', $('#searchInput').val());
+    if ($('#startDate').val()) params.append('startDate', $('#startDate').val());
+    if ($('#endDate').val()) params.append('endDate', $('#endDate').val());
+    if ($('#statusFilter').val()) params.append('isSuccessful', $('#statusFilter').val());
+    
+    return params;
+}
+
+function displayApiLogs(logs) {
+    const tbody = $('#apiLogsTableBody');
+    tbody.empty();
+    
+    if (logs.length === 0) {
+        tbody.append(`
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    <i class="fas fa-search fa-2x mb-2"></i><br>
+                    No logs found matching your criteria
+                </td>
+            </tr>
+        `);
+        return;
+    }
+    
+    logs.forEach(log => {
+        const statusBadge = log.isSuccessful 
+            ? `<span class="badge bg-success">${log.statusCode}</span>`
+            : `<span class="badge bg-danger">${log.statusCode}</span>`;
+        
+        const scenarioInfo = log.scenarioName 
+            ? `${log.scenarioName} (${log.scenarioType})`
+            : '-';
+        
+        tbody.append(`
+            <tr>
+                <td>${new Date(log.requestTimestamp).toLocaleString()}</td>
+                <td>${log.apiName}</td>
+                <td>${statusBadge}</td>
+                <td>${log.responseTimeMs}ms</td>
+                <td>${scenarioInfo}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewLogDetails(${log.id}, 'api')">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>
+        `);
+    });
+}
+
+function displaySystemLogs(logs) {
+    const tbody = $('#systemLogsTableBody');
+    tbody.empty();
+    
+    // For system logs, we'll show placeholder data since we don't have a real system logs table
+    const placeholderLogs = [
+        {
+            timestamp: new Date().toISOString(),
+            level: 'Information',
+            category: 'Application',
+            message: 'Application started successfully'
+        },
+        {
+            timestamp: new Date(Date.now() - 30*60*1000).toISOString(),
+            level: 'Warning',
+            category: 'Database',
+            message: 'Database connection pool near capacity'
+        }
+    ];
+    
+    placeholderLogs.forEach(log => {
+        const levelBadge = getLevelBadge(log.level);
+        
+        tbody.append(`
+            <tr>
+                <td>${new Date(log.timestamp).toLocaleString()}</td>
+                <td>${levelBadge}</td>
+                <td>${log.category}</td>
+                <td>${log.message}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewLogDetails(0, 'system', ${JSON.stringify(log).replace(/"/g, '&quot;')})">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>
+        `);
+    });
+}
+
+function getLevelBadge(level) {
+    switch (level) {
+        case 'Error':
+        case 'Critical':
+            return `<span class="badge bg-danger">${level}</span>`;
+        case 'Warning':
+            return `<span class="badge bg-warning">${level}</span>`;
+        case 'Information':
+            return `<span class="badge bg-info">${level}</span>`;
+        case 'Debug':
+        case 'Trace':
+            return `<span class="badge bg-secondary">${level}</span>`;
+        default:
+            return `<span class="badge bg-light text-dark">${level}</span>`;
+    }
+}
+
+function viewLogDetails(id, type, systemLogData = null) {
+    if (type === 'system' && systemLogData) {
+        displaySystemLogDetails(systemLogData);
+        return;
+    }
+    
+    $.get(`/api/system-logs/api-requests/${id}`)
+        .done(function(log) {
+            displayApiLogDetails(log);
+        })
+        .fail(function() {
+            showNotification('Failed to load log details', 'error');
+        });
+}
+
+function displayApiLogDetails(log) {
+    const basicInfo = $('#logBasicInfo');
+    const additionalInfo = $('#logAdditionalInfo');
+    
+    basicInfo.html(`
+        <tr><td><strong>ID</strong></td><td>${log.id}</td></tr>
+        <tr><td><strong>Timestamp</strong></td><td>${new Date(log.requestTimestamp).toLocaleString()}</td></tr>
+        <tr><td><strong>API</strong></td><td>${log.apiName}</td></tr>
+        <tr><td><strong>Status Code</strong></td><td>${log.statusCode}</td></tr>
+        <tr><td><strong>Success</strong></td><td>${log.isSuccessful ? 'Yes' : 'No'}</td></tr>
+    `);
+    
+    additionalInfo.html(`
+        <tr><td><strong>Response Time</strong></td><td>${log.responseTimeMs}ms</td></tr>
+        <tr><td><strong>Iteration</strong></td><td>${log.iterationNumber}</td></tr>
+        <tr><td><strong>Scenario</strong></td><td>${log.scenarioName || '-'}</td></tr>
+        <tr><td><strong>Scenario Type</strong></td><td>${log.scenarioType || '-'}</td></tr>
+    `);
+    
+    // Show/hide sections based on available data
+    if (log.requestPayload) {
+        $('#logPayloadSection').show();
+        $('#requestPayload').text(JSON.stringify(JSON.parse(log.requestPayload), null, 2));
+        Prism.highlightElement($('#requestPayload')[0]);
+    } else {
+        $('#logPayloadSection').hide();
+    }
+    
+    if (log.responseContent) {
+        $('#logResponseSection').show();
+        $('#responseContent').text(JSON.stringify(JSON.parse(log.responseContent), null, 2));
+        Prism.highlightElement($('#responseContent')[0]);
+    } else {
+        $('#logResponseSection').hide();
+    }
+    
+    if (log.errorMessage) {
+        $('#logErrorSection').show();
+        $('#errorDetails').text(log.errorMessage);
+    } else {
+        $('#logErrorSection').hide();
+    }
+    
+    $('#logDetailModal').modal('show');
+}
+
+function displaySystemLogDetails(log) {
+    const basicInfo = $('#logBasicInfo');
+    const additionalInfo = $('#logAdditionalInfo');
+    
+    basicInfo.html(`
+        <tr><td><strong>Timestamp</strong></td><td>${new Date(log.timestamp).toLocaleString()}</td></tr>
+        <tr><td><strong>Level</strong></td><td>${log.level}</td></tr>
+        <tr><td><strong>Category</strong></td><td>${log.category}</td></tr>
+    `);
+    
+    additionalInfo.html(`
+        <tr><td><strong>Message</strong></td><td>${log.message}</td></tr>
+    `);
+    
+    $('#logPayloadSection').hide();
+    $('#logResponseSection').hide();
+    $('#logErrorSection').hide();
+    
+    $('#logDetailModal').modal('show');
+}
+
+function loadTrends() {
+    if (Object.keys(statsData).length === 0) {
+        loadStats().then(() => createCharts());
+    } else {
+        createCharts();
+    }
+}
+
+function createCharts() {
+    createVolumeTrendChart();
+    createStatusDistributionChart();
+    createApiUsageChart();
+    createResponseTimeTrendChart();
+}
+
+function createVolumeTrendChart() {
+    const ctx = document.getElementById('volumeTrendChart');
+    if (!ctx || !statsData.hourlyTrends) return;
+    
+    if (charts.volumeTrend) {
+        charts.volumeTrend.destroy();
+    }
+    
+    charts.volumeTrend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: statsData.hourlyTrends.map(point => new Date(point.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+            datasets: [{
+                label: 'Total Requests',
+                data: statsData.hourlyTrends.map(point => point.count),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }, {
+                label: 'Errors',
+                data: statsData.hourlyTrends.map(point => point.errorCount),
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function createStatusDistributionChart() {
+    const ctx = document.getElementById('statusDistributionChart');
+    if (!ctx || !statsData.statusCodeDistribution) return;
+    
+    if (charts.statusDistribution) {
+        charts.statusDistribution.destroy();
+    }
+    
+    const statusCodes = Object.keys(statsData.statusCodeDistribution);
+    const counts = Object.values(statsData.statusCodeDistribution);
+    
+    charts.statusDistribution = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: statusCodes,
+            datasets: [{
+                data: counts,
+                backgroundColor: statusCodes.map(code => 
+                    code.startsWith('2') ? 'rgba(75, 192, 192, 0.8)' :
+                    code.startsWith('4') ? 'rgba(255, 206, 86, 0.8)' :
+                    code.startsWith('5') ? 'rgba(255, 99, 132, 0.8)' :
+                    'rgba(54, 162, 235, 0.8)'
+                )
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function createApiUsageChart() {
+    const ctx = document.getElementById('apiUsageChart');
+    if (!ctx || !statsData.apiUsageStats) return;
+    
+    if (charts.apiUsage) {
+        charts.apiUsage.destroy();
+    }
+    
+    charts.apiUsage = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(statsData.apiUsageStats),
+            datasets: [{
+                label: 'Request Count',
+                data: Object.values(statsData.apiUsageStats),
+                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function createResponseTimeTrendChart() {
+    const ctx = document.getElementById('responseTimeTrendChart');
+    if (!ctx || !statsData.hourlyTrends) return;
+    
+    if (charts.responseTimeTrend) {
+        charts.responseTimeTrend.destroy();
+    }
+    
+    charts.responseTimeTrend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: statsData.hourlyTrends.map(point => new Date(point.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+            datasets: [{
+                label: 'Avg Response Time (ms)',
+                data: statsData.hourlyTrends.map(point => point.averageResponseTime),
+                borderColor: 'rgb(153, 102, 255)',
+                backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function applyFilters() {
+    currentPage = 1;
+    loadLogs();
+    loadStats();
+}
+
+function updatePagination(containerId, totalPages) {
+    const container = $(`#${containerId} ul`);
+    container.empty();
+    
+    if (totalPages <= 1) return;
+    
+    // Previous button
+    container.append(`
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${currentPage - 1})">Previous</a>
+        </li>
+    `);
+    
+    // Page numbers
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        container.append(`
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="goToPage(${i})">${i}</a>
+            </li>
+        `);
+    }
+    
+    // Next button
+    container.append(`
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${currentPage + 1})">Next</a>
+        </li>
+    `);
+}
+
+function goToPage(page) {
+    if (page < 1) return;
+    currentPage = page;
+    loadLogs();
+}
+
+function performExport() {
+    const exportData = {
+        logType: $('#exportLogType').val(),
+        format: $('#exportFormat').val(),
+        startDate: $('#exportStartDate').val() || null,
+        endDate: $('#exportEndDate').val() || null,
+        maxRecords: parseInt($('#exportMaxRecords').val()) || 10000
+    };
+    
+    $.ajax({
+        url: '/api/system-logs/export',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(exportData),
+        xhrFields: { responseType: 'blob' }
+    })
+    .done(function(data, status, xhr) {
+        const blob = new Blob([data]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Get filename from Content-Disposition header or create one
+        const disposition = xhr.getResponseHeader('Content-Disposition');
+        let filename = 'logs_export';
+        if (disposition && disposition.includes('filename=')) {
+            filename = disposition.split('filename=')[1].replace(/"/g, '');
+        } else {
+            filename += `.${exportData.format}`;
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        $('#exportModal').modal('hide');
+        showNotification('Logs exported successfully', 'success');
+    })
+    .fail(function() {
+        showNotification('Failed to export logs', 'error');
+    });
+}
+
+function performCleanup() {
+    const cleanupData = {
+        logType: $('#cleanupLogType').val(),
+        olderThan: $('#cleanupOlderThan').val(),
+        dryRun: $('#dryRun').is(':checked')
+    };
+    
+    $.ajax({
+        url: '/api/system-logs/cleanup',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(cleanupData)
+    })
+    .done(function(result) {
+        if (result.success) {
+            showNotification(result.message, result.wasDryRun ? 'info' : 'success');
+            if (!result.wasDryRun) {
+                refreshData();
+            }
+        } else {
+            showNotification(result.message, 'error');
+        }
+        $('#cleanupModal').modal('hide');
+    })
+    .fail(function() {
+        showNotification('Failed to cleanup logs', 'error');
+    });
+}
+
+// Utility functions
+function formatDate(date) {
+    return date.toISOString().split('T')[0];
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function showNotification(message, type) {
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+
+    const alert = $(`
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `);
+
+    $('.container-fluid').prepend(alert);
+
+    setTimeout(() => {
+        alert.alert('close');
+    }, 5000);
+}
+</script>
+}

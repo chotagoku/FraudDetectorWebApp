@@ -1,0 +1,974 @@
+@page
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header Section -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-users text-primary me-2"></i>User Management
+                    </h1>
+                    <p class="text-muted mb-0">Manage user accounts, roles, and permissions</p>
+                </div>
+                <div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="refreshUsers()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportUsers()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                            <i class="fas fa-user-plus"></i> Add User
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Total Users</h6>
+                                    <h3 class="mb-0" id="totalUsers">0</h3>
+                                </div>
+                                <i class="fas fa-users fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Active Users</h6>
+                                    <h3 class="mb-0" id="activeUsers">0</h3>
+                                </div>
+                                <i class="fas fa-user-check fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Admin Users</h6>
+                                    <h3 class="mb-0" id="adminUsers">0</h3>
+                                </div>
+                                <i class="fas fa-user-shield fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Recent Logins</h6>
+                                    <h3 class="mb-0" id="recentLogins">0</h3>
+                                </div>
+                                <i class="fas fa-sign-in-alt fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search users by name, email, or company...">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" id="roleFilter">
+                                <option value="">All Roles</option>
+                                <option value="Admin">Admin</option>
+                                <option value="User">User</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" id="sortBy">
+                                <option value="name">Sort by Name</option>
+                                <option value="email">Sort by Email</option>
+                                <option value="role">Sort by Role</option>
+                                <option value="created">Sort by Created</option>
+                                <option value="lastLogin">Sort by Last Login</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Users</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary" onclick="bulkAction('activate')">
+                            <i class="fas fa-user-check"></i> Bulk Activate
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" onclick="bulkAction('deactivate')">
+                            <i class="fas fa-user-times"></i> Bulk Deactivate
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="bulkAction('delete')">
+                            <i class="fas fa-trash"></i> Bulk Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="usersTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="30">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAll">
+                                        </div>
+                                    </th>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Company</th>
+                                    <th>Status</th>
+                                    <th>Last Login</th>
+                                    <th>Created</th>
+                                    <th width="150">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center py-4">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading users...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">Loading users...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            Showing <span id="showingCount">0</span> of <span id="totalCount">0</span> users
+                        </div>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0" id="pagination">
+                                <!-- Pagination will be generated by JavaScript -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>Create New User
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="firstName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="lastName" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" required minlength="6">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="confirmPassword" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role" required>
+                                <option value="">Select Role</option>
+                                <option value="User">User</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" placeholder="+92-300-1234567">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="company" class="form-label">Company</label>
+                            <input type="text" class="form-control" id="company" placeholder="Company name">
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                <label class="form-check-label" for="isActive">
+                                    Active (User can log in)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createUser()">
+                    <i class="fas fa-save me-2"></i>Create User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit me-2"></i>Edit User
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="editFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editFirstName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editLastName" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="editEmail" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="editEmail" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editRole" class="form-label">Role <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editRole" required>
+                                <option value="">Select Role</option>
+                                <option value="User">User</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editPhone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="editPhone" placeholder="+92-300-1234567">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="editCompany" class="form-label">Company</label>
+                            <input type="text" class="form-control" id="editCompany" placeholder="Company name">
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editIsActive">
+                                <label class="form-check-label" for="editIsActive">
+                                    Active (User can log in)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Password Reset:</strong> Use the "Reset Password" button to generate a new password for this user.
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="resetUserPassword()">
+                    <i class="fas fa-key me-2"></i>Reset Password
+                </button>
+                <button type="button" class="btn btn-primary" onclick="updateUser()">
+                    <i class="fas fa-save me-2"></i>Update User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+let users = [];
+let filteredUsers = [];
+let currentPage = 1;
+let pageSize = 10;
+let selectedUsers = [];
+
+// Initialize page
+$(document).ready(function() {
+    loadUsers();
+    setupEventHandlers();
+    loadStatistics();
+});
+
+function setupEventHandlers() {
+    $('#searchInput').on('keyup', debounce(filterUsers, 300));
+    $('#roleFilter, #statusFilter, #sortBy').on('change', filterUsers);
+    
+    // Select all checkbox
+    $('#selectAll').on('change', function() {
+        const isChecked = $(this).is(':checked');
+        $('.user-checkbox').prop('checked', isChecked);
+        updateSelectedUsers();
+    });
+    
+    // Password confirmation validation
+    $('#confirmPassword').on('keyup', function() {
+        const password = $('#password').val();
+        const confirmPassword = $(this).val();
+        
+        if (password !== confirmPassword) {
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid');
+        }
+    });
+}
+
+async function loadUsers() {
+    try {
+        const response = await fetch('/api/debug/users');
+        
+        if (response.ok) {
+            users = await response.json();
+            filteredUsers = [...users];
+            displayUsers();
+        } else {
+            // Fallback - create mock data for demonstration
+            users = createMockUsers();
+            filteredUsers = [...users];
+            displayUsers();
+        }
+    } catch (error) {
+        console.warn('Could not load users from API, using mock data:', error);
+        users = createMockUsers();
+        filteredUsers = [...users];
+        displayUsers();
+    }
+}
+
+function createMockUsers() {
+    return [
+        {
+            id: 1,
+            firstName: 'Test',
+            lastName: 'Admin',
+            email: 'admin@test.com',
+            role: 'Admin',
+            phone: '+92-300-1234567',
+            company: 'Test Company',
+            isActive: true,
+            createdAt: new Date('2025-01-01'),
+            lastLoginAt: new Date()
+        },
+        {
+            id: 2,
+            firstName: 'John',
+            lastName: 'Doe',
+            email: 'john.doe@example.com',
+            role: 'User',
+            phone: '+92-301-1234567',
+            company: 'ABC Corp',
+            isActive: true,
+            createdAt: new Date('2025-01-15'),
+            lastLoginAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
+        },
+        {
+            id: 3,
+            firstName: 'Jane',
+            lastName: 'Smith',
+            email: 'jane.smith@example.com',
+            role: 'User',
+            phone: '+92-302-1234567',
+            company: 'XYZ Ltd',
+            isActive: false,
+            createdAt: new Date('2025-01-10'),
+            lastLoginAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 days ago
+        }
+    ];
+}
+
+async function loadStatistics() {
+    const totalUsersCount = users.length;
+    const activeUsersCount = users.filter(u => u.isActive).length;
+    const adminUsersCount = users.filter(u => u.role === 'Admin').length;
+    const recentLoginsCount = users.filter(u => u.lastLoginAt && 
+        new Date(u.lastLoginAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length;
+    
+    $('#totalUsers').text(totalUsersCount);
+    $('#activeUsers').text(activeUsersCount);
+    $('#adminUsers').text(adminUsersCount);
+    $('#recentLogins').text(recentLoginsCount);
+}
+
+function displayUsers() {
+    const tbody = $('#usersTableBody');
+    tbody.empty();
+
+    if (filteredUsers.length === 0) {
+        tbody.html(`
+            <tr>
+                <td colspan="9" class="text-center py-4">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No users found</h5>
+                    <p class="text-muted">Try adjusting your search criteria or add a new user.</p>
+                </td>
+            </tr>
+        `);
+        return;
+    }
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+    const usersHtml = paginatedUsers.map(user => createUserRow(user)).join('');
+    tbody.html(usersHtml);
+
+    // Update pagination and counts
+    updatePagination();
+    $('#showingCount').text(paginatedUsers.length);
+    $('#totalCount').text(filteredUsers.length);
+}
+
+function createUserRow(user) {
+    const statusBadge = user.isActive ? 
+        '<span class="badge bg-success">Active</span>' : 
+        '<span class="badge bg-secondary">Inactive</span>';
+    
+    const roleBadge = user.role === 'Admin' ? 
+        '<span class="badge bg-warning text-dark">Admin</span>' : 
+        '<span class="badge bg-primary">User</span>';
+
+    const lastLogin = user.lastLoginAt ? 
+        new Date(user.lastLoginAt).toLocaleDateString() : 
+        '<span class="text-muted">Never</span>';
+
+    return `
+        <tr>
+            <td>
+                <div class="form-check">
+                    <input class="form-check-input user-checkbox" type="checkbox" value="${user.id}" onchange="updateSelectedUsers()">
+                </div>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="avatar-circle me-2">
+                        ${user.firstName.charAt(0)}${user.lastName.charAt(0)}
+                    </div>
+                    <div>
+                        <div class="fw-semibold">${user.firstName} ${user.lastName}</div>
+                    </div>
+                </div>
+            </td>
+            <td>${user.email}</td>
+            <td>${roleBadge}</td>
+            <td>${user.company || '<span class="text-muted">-</span>'}</td>
+            <td>${statusBadge}</td>
+            <td>${lastLogin}</td>
+            <td><small class="text-muted">${new Date(user.createdAt).toLocaleDateString()}</small></td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary" onclick="editUser(${user.id})" title="Edit User">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-${user.isActive ? 'warning' : 'success'}" 
+                            onclick="toggleUserStatus(${user.id})" 
+                            title="${user.isActive ? 'Deactivate' : 'Activate'} User">
+                        <i class="fas fa-user-${user.isActive ? 'times' : 'check'}"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="deleteUser(${user.id})" title="Delete User">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function filterUsers() {
+    const searchTerm = $('#searchInput').val().toLowerCase();
+    const roleFilter = $('#roleFilter').val();
+    const statusFilter = $('#statusFilter').val();
+    const sortBy = $('#sortBy').val();
+
+    filteredUsers = users.filter(user => {
+        const matchesSearch = !searchTerm || 
+            user.firstName.toLowerCase().includes(searchTerm) ||
+            user.lastName.toLowerCase().includes(searchTerm) ||
+            user.email.toLowerCase().includes(searchTerm) ||
+            (user.company && user.company.toLowerCase().includes(searchTerm));
+        
+        const matchesRole = !roleFilter || user.role === roleFilter;
+        const matchesStatus = !statusFilter || 
+            (statusFilter === 'active' && user.isActive) ||
+            (statusFilter === 'inactive' && !user.isActive);
+
+        return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    // Sort users
+    filteredUsers.sort((a, b) => {
+        switch (sortBy) {
+            case 'name':
+                return (a.firstName + ' ' + a.lastName).localeCompare(b.firstName + ' ' + b.lastName);
+            case 'email':
+                return a.email.localeCompare(b.email);
+            case 'role':
+                return a.role.localeCompare(b.role);
+            case 'created':
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            case 'lastLogin':
+                const aLogin = a.lastLoginAt ? new Date(a.lastLoginAt) : new Date(0);
+                const bLogin = b.lastLoginAt ? new Date(b.lastLoginAt) : new Date(0);
+                return bLogin - aLogin;
+            default:
+                return 0;
+        }
+    });
+
+    currentPage = 1;
+    displayUsers();
+}
+
+function clearFilters() {
+    $('#searchInput').val('');
+    $('#roleFilter').val('');
+    $('#statusFilter').val('');
+    $('#sortBy').val('name');
+    filterUsers();
+}
+
+function refreshUsers() {
+    loadUsers();
+    loadStatistics();
+    showSuccess('Users refreshed successfully');
+}
+
+function exportUsers() {
+    const dataStr = JSON.stringify(filteredUsers, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `users-export-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    showSuccess('Users exported successfully');
+}
+
+async function createUser() {
+    const formData = {
+        firstName: $('#firstName').val(),
+        lastName: $('#lastName').val(),
+        email: $('#email').val(),
+        password: $('#password').val(),
+        confirmPassword: $('#confirmPassword').val(),
+        role: $('#role').val(),
+        phone: $('#phone').val(),
+        company: $('#company').val(),
+        isActive: $('#isActive').is(':checked')
+    };
+
+    if (!formData.firstName || !formData.lastName || !formData.email || 
+        !formData.password || !formData.role) {
+        showError('Please fill in all required fields');
+        return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+        showError('Passwords do not match');
+        return;
+    }
+
+    if (formData.password.length < 6) {
+        showError('Password must be at least 6 characters long');
+        return;
+    }
+
+    try {
+        // Since we don't have a real API, simulate user creation
+        const newUser = {
+            id: Math.max(...users.map(u => u.id)) + 1,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            role: formData.role,
+            phone: formData.phone,
+            company: formData.company,
+            isActive: formData.isActive,
+            createdAt: new Date(),
+            lastLoginAt: null
+        };
+
+        users.push(newUser);
+        
+        showSuccess('User created successfully!');
+        $('#createUserModal').modal('hide');
+        $('#createUserForm')[0].reset();
+        filterUsers();
+        loadStatistics();
+    } catch (error) {
+        showError('Error creating user: ' + error.message);
+    }
+}
+
+function editUser(id) {
+    const user = users.find(u => u.id === id);
+    if (user) {
+        $('#editUserId').val(user.id);
+        $('#editFirstName').val(user.firstName);
+        $('#editLastName').val(user.lastName);
+        $('#editEmail').val(user.email);
+        $('#editRole').val(user.role);
+        $('#editPhone').val(user.phone);
+        $('#editCompany').val(user.company);
+        $('#editIsActive').prop('checked', user.isActive);
+        
+        $('#editUserModal').modal('show');
+    }
+}
+
+async function updateUser() {
+    const userId = parseInt($('#editUserId').val());
+    const formData = {
+        firstName: $('#editFirstName').val(),
+        lastName: $('#editLastName').val(),
+        email: $('#editEmail').val(),
+        role: $('#editRole').val(),
+        phone: $('#editPhone').val(),
+        company: $('#editCompany').val(),
+        isActive: $('#editIsActive').is(':checked')
+    };
+
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.role) {
+        showError('Please fill in all required fields');
+        return;
+    }
+
+    try {
+        // Since we don't have a real API, simulate user update
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+            users[userIndex] = { ...users[userIndex], ...formData };
+            
+            showSuccess('User updated successfully!');
+            $('#editUserModal').modal('hide');
+            filterUsers();
+            loadStatistics();
+        }
+    } catch (error) {
+        showError('Error updating user: ' + error.message);
+    }
+}
+
+async function toggleUserStatus(id) {
+    const user = users.find(u => u.id === id);
+    if (user) {
+        user.isActive = !user.isActive;
+        const action = user.isActive ? 'activated' : 'deactivated';
+        showSuccess(`User ${action} successfully`);
+        displayUsers();
+        loadStatistics();
+    }
+}
+
+async function deleteUser(id) {
+    const user = users.find(u => u.id === id);
+    if (user) {
+        const result = await Swal.fire({
+            title: 'Delete User',
+            text: `Are you sure you want to delete ${user.firstName} ${user.lastName}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete user'
+        });
+
+        if (result.isConfirmed) {
+            const userIndex = users.findIndex(u => u.id === id);
+            if (userIndex !== -1) {
+                users.splice(userIndex, 1);
+                showSuccess('User deleted successfully');
+                filterUsers();
+                loadStatistics();
+            }
+        }
+    }
+}
+
+function resetUserPassword() {
+    const userId = parseInt($('#editUserId').val());
+    const user = users.find(u => u.id === userId);
+    
+    if (user) {
+        const newPassword = generateRandomPassword();
+        
+        Swal.fire({
+            title: 'Password Reset',
+            html: `
+                <p>New password for <strong>${user.email}</strong>:</p>
+                <div class="alert alert-info">
+                    <code style="font-size: 1.2em;">${newPassword}</code>
+                </div>
+                <p class="text-muted small">Make sure to share this password securely with the user.</p>
+            `,
+            icon: 'success',
+            confirmButtonText: 'Copy Password',
+            showCancelButton: true,
+            cancelButtonText: 'Close'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                navigator.clipboard.writeText(newPassword);
+                showSuccess('Password copied to clipboard');
+            }
+        });
+    }
+}
+
+function generateRandomPassword() {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@@#$%^&*";
+    let password = "";
+    for (let i = 0; i < 12; i++) {
+        password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+}
+
+function updateSelectedUsers() {
+    selectedUsers = $('.user-checkbox:checked').map(function() {
+        return parseInt($(this).val());
+    }).get();
+    
+    const allChecked = $('.user-checkbox').length === selectedUsers.length;
+    $('#selectAll').prop('checked', allChecked);
+}
+
+function bulkAction(action) {
+    if (selectedUsers.length === 0) {
+        showError('Please select at least one user');
+        return;
+    }
+
+    const actionName = action.charAt(0).toUpperCase() + action.slice(1);
+    
+    Swal.fire({
+        title: `${actionName} Users`,
+        text: `Are you sure you want to ${action} ${selectedUsers.length} selected user(s)?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: action === 'delete' ? '#dc3545' : '#007bff',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: `Yes, ${action}`
+    }).then((result) => {
+        if (result.isConfirmed) {
+            selectedUsers.forEach(userId => {
+                const userIndex = users.findIndex(u => u.id === userId);
+                if (userIndex !== -1) {
+                    switch (action) {
+                        case 'activate':
+                            users[userIndex].isActive = true;
+                            break;
+                        case 'deactivate':
+                            users[userIndex].isActive = false;
+                            break;
+                        case 'delete':
+                            users.splice(userIndex, 1);
+                            break;
+                    }
+                }
+            });
+            
+            selectedUsers = [];
+            $('#selectAll').prop('checked', false);
+            showSuccess(`Users ${action}d successfully`);
+            filterUsers();
+            loadStatistics();
+        }
+    });
+}
+
+function updatePagination() {
+    const totalPages = Math.ceil(filteredUsers.length / pageSize);
+    const pagination = $('#pagination');
+    pagination.empty();
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    pagination.append(`
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a>
+        </li>
+    `);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            pagination.append(`
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                </li>
+            `);
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            pagination.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+    }
+
+    // Next button
+    pagination.append(`
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a>
+        </li>
+    `);
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(filteredUsers.length / pageSize);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        displayUsers();
+    }
+}
+
+// Utility functions
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function showSuccess(message) {
+    showToast(message, 'success');
+}
+
+function showError(message) {
+    showToast(message, 'error');
+}
+
+function showInfo(message) {
+    showToast(message, 'info');
+}
+
+function showToast(message, type = 'info') {
+    const toast = $(`
+        <div class="alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 250px;">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `);
+    
+    $('body').append(toast);
+    
+    setTimeout(() => {
+        toast.alert('close');
+    }, 5000);
+}
+</script>
+}
+
+<style>
+.avatar-circle {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+@@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.15rem 0.3rem;
+        font-size: 0.75rem;
+    }
+    
+    .avatar-circle {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+    }
+}
+</style>

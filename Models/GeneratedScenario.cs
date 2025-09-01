@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FraudDetectorWebApp.Models
 {
-    public class GeneratedScenario
+    public class GeneratedScenario : ISoftDelete
     {
         public int Id { get; set; }
         

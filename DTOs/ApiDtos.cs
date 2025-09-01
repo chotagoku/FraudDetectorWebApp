@@ -26,11 +26,6 @@ namespace FraudDetectorWebApp.DTOs
         public string? Company { get; set; }
     }
 
-    public class UserLoginDto
-    {
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-    }
 
     // Scenario DTOs
     public class GeneratedScenarioDto

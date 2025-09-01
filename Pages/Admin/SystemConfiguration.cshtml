@@ -1,0 +1,1054 @@
+@page
+@model FraudDetectorWebApp.Pages.Admin.SystemConfigurationModel
+@{
+    ViewData["Title"] = "System Configuration";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">System Configuration</h1>
+                    <p class="text-muted">Manage all system settings and configurations</p>
+                </div>
+                <div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" id="refreshConfigs">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button type="button" class="btn btn-outline-info" id="exportConfigs">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" id="importConfigs">
+                            <i class="fas fa-upload"></i> Import
+                        </button>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-magic"></i> Templates
+                            </button>
+                            <ul class="dropdown-menu" id="templatesDropdown">
+                                <!-- Templates will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Health Card -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-heartbeat text-success"></i>
+                                System Health
+                                <span class="badge bg-success ms-2" id="healthStatus">Healthy</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="healthInfo">
+                                <!-- Health information will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Sections -->
+            <div class="row">
+                <div class="col-md-3">
+                    <!-- Section Navigation -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Configuration Sections</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group list-group-flush" id="sectionList">
+                                <!-- Sections will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categories Filter -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Filter by Category</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showAdvanced">
+                                <label class="form-check-label" for="showAdvanced">
+                                    Show Advanced Settings
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showReadOnly">
+                                <label class="form-check-label" for="showReadOnly">
+                                    Show Read-Only Settings
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showRequireRestart" checked>
+                                <label class="form-check-label" for="showRequireRestart">
+                                    Show Restart Required
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-9">
+                    <!-- Search and Filters -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" id="searchInput" placeholder="Search configurations...">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="categoryFilter">
+                                        <option value="">All Categories</option>
+                                        <!-- Categories will be populated dynamically -->
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="sectionFilter">
+                                        <option value="">All Sections</option>
+                                        <!-- Sections will be populated dynamically -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Content -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0" id="configSectionTitle">All Configurations</h5>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-primary" id="saveChanges" style="display: none;">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="discardChanges" style="display: none;">
+                                    <i class="fas fa-times"></i> Discard
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="configurationsContainer">
+                                <!-- Configuration items will be populated dynamically -->
+                                <div class="text-center py-4">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading configurations...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Loading configurations...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Configurations</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="importForm">
+                    <div class="mb-3">
+                        <label for="importData" class="form-label">Configuration Data (JSON)</label>
+                        <textarea class="form-control" id="importData" rows="10" 
+                                  placeholder="Paste your configuration JSON here..."></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="overwriteExisting">
+                        <label class="form-check-label" for="overwriteExisting">
+                            Overwrite existing configurations
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="validateOnly">
+                        <label class="form-check-label" for="validateOnly">
+                            Validate only (don't save)
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="performImport">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Edit Modal -->
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="configModalTitle">Edit Configuration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="configForm">
+                    <input type="hidden" id="configId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="configKey" class="form-label">Key</label>
+                            <input type="text" class="form-control" id="configKey" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="configDisplayName" class="form-label">Display Name</label>
+                            <input type="text" class="form-control" id="configDisplayName">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="configDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="configDescription" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="configCategory" class="form-label">Category</label>
+                            <select class="form-select" id="configCategory">
+                                <!-- Categories will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="configSection" class="form-label">Section</label>
+                            <select class="form-select" id="configSection">
+                                <!-- Sections will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="configDataType" class="form-label">Data Type</label>
+                            <select class="form-select" id="configDataType">
+                                <option value="string">String</option>
+                                <option value="int">Integer</option>
+                                <option value="bool">Boolean</option>
+                                <option value="decimal">Decimal</option>
+                                <option value="datetime">DateTime</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="configDisplayOrder" class="form-label">Display Order</label>
+                            <input type="number" class="form-control" id="configDisplayOrder" min="0">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="configValue" class="form-label">Value</label>
+                            <div id="valueInputContainer">
+                                <!-- Value input will be rendered dynamically based on data type -->
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="configDefaultValue" class="form-label">Default Value</label>
+                            <input type="text" class="form-control" id="configDefaultValue">
+                        </div>
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="configIsReadOnly">
+                                        <label class="form-check-label" for="configIsReadOnly">
+                                            Read Only
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="configRequiresRestart">
+                                        <label class="form-check-label" for="configRequiresRestart">
+                                            Requires Restart
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="configIsAdvanced">
+                                        <label class="form-check-label" for="configIsAdvanced">
+                                            Advanced Setting
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-warning" id="resetToDefault">
+                    <i class="fas fa-undo"></i> Reset to Default
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveConfig">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+<script>
+let configurations = [];
+let filteredConfigurations = [];
+let currentSection = 'all';
+let hasUnsavedChanges = false;
+let configConnection;
+
+// Initialize SignalR connection for real-time updates
+function initializeSignalR() {
+    configConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/configuration")
+        .build();
+
+    configConnection.start().then(function () {
+        console.log('SignalR connected for configuration updates');
+        
+        // Listen for configuration changes
+        configConnection.on("ConfigurationUpdated", function (configKey, newValue, updatedBy) {
+            showNotification(`Configuration '${configKey}' updated by ${updatedBy}`, 'info');
+            loadConfigurations();
+        });
+
+        configConnection.on("ServiceStatusChanged", function (serviceName, isRunning) {
+            updateServiceStatus(serviceName, isRunning);
+        });
+
+    }).catch(function (err) {
+        console.error('SignalR connection error:', err);
+    });
+}
+
+$(document).ready(function() {
+    loadSystemHealth();
+    loadConfigurationSections();
+    loadConfigurations();
+    loadTemplates();
+    initializeSignalR();
+    
+    // Search functionality
+    $('#searchInput').on('keyup', debounce(filterConfigurations, 300));
+    $('#categoryFilter, #sectionFilter').on('change', filterConfigurations);
+    $('#showAdvanced, #showReadOnly, #showRequireRestart').on('change', filterConfigurations);
+    
+    // Button handlers
+    $('#refreshConfigs').on('click', loadConfigurations);
+    $('#exportConfigs').on('click', exportConfigurations);
+    $('#importConfigs').on('click', () => $('#importModal').modal('show'));
+    $('#performImport').on('click', performImport);
+    $('#saveChanges').on('click', saveAllChanges);
+    $('#discardChanges').on('click', discardChanges);
+    
+    // Configuration form handlers
+    $('#saveConfig').on('click', saveConfiguration);
+    $('#resetToDefault').on('click', resetConfigurationToDefault);
+});
+
+function loadSystemHealth() {
+    $.get('/api/system-configuration/health')
+        .done(function(health) {
+            updateSystemHealthDisplay(health);
+        })
+        .fail(function() {
+            $('#healthStatus').removeClass('bg-success').addClass('bg-danger').text('Error');
+        });
+}
+
+function updateSystemHealthDisplay(health) {
+    const statusBadge = $('#healthStatus');
+    if (health.isHealthy) {
+        statusBadge.removeClass('bg-danger').addClass('bg-success').text('Healthy');
+    } else {
+        statusBadge.removeClass('bg-success').addClass('bg-danger').text('Unhealthy');
+    }
+
+    const healthInfoContainer = $('#healthInfo');
+    healthInfoContainer.empty();
+
+    // System Info
+    if (health.systemInfo) {
+        const systemCol = $('<div class="col-md-4"></div>');
+        systemCol.append('<h6>System Information</h6>');
+        Object.entries(health.systemInfo).forEach(([key, value]) => {
+            systemCol.append(`<small class="d-block"><strong>${key}:</strong> ${value}</small>`);
+        });
+        healthInfoContainer.append(systemCol);
+    }
+
+    // Service Status
+    if (health.serviceStatus) {
+        const servicesCol = $('<div class="col-md-4"></div>');
+        servicesCol.append('<h6>Services Status</h6>');
+        Object.entries(health.serviceStatus).forEach(([service, isRunning]) => {
+            const badge = isRunning ? 'bg-success' : 'bg-danger';
+            const status = isRunning ? 'Running' : 'Stopped';
+            servicesCol.append(`<small class="d-block">${service}: <span class="badge ${badge}">${status}</span></small>`);
+        });
+        healthInfoContainer.append(servicesCol);
+    }
+
+    // Configuration Summary
+    if (health.configurationSummary) {
+        const configCol = $('<div class="col-md-4"></div>');
+        configCol.append('<h6>Configuration Summary</h6>');
+        Object.entries(health.configurationSummary).forEach(([key, value]) => {
+            configCol.append(`<small class="d-block"><strong>${key}:</strong> ${value}</small>`);
+        });
+        healthInfoContainer.append(configCol);
+    }
+}
+
+function loadConfigurationSections() {
+    $.get('/api/system-configuration/sections')
+        .done(function(sections) {
+            const sectionList = $('#sectionList');
+            sectionList.empty();
+            
+            // Add "All" option
+            sectionList.append(`
+                <a href="#" class="list-group-item list-group-item-action active" data-section="all">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">All Configurations</h6>
+                        <small id="allCount">0</small>
+                    </div>
+                    <p class="mb-1">View all system configurations</p>
+                </a>
+            `);
+
+            sections.forEach(section => {
+                const restartCount = section.requireRestartConfigurations > 0 
+                    ? `<span class="badge bg-warning ms-1" title="Requires restart">${section.requireRestartConfigurations}</span>` 
+                    : '';
+
+                sectionList.append(`
+                    <a href="#" class="list-group-item list-group-item-action" data-section="${section.sectionName}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${section.sectionName}</h6>
+                            <small>${section.totalConfigurations}${restartCount}</small>
+                        </div>
+                        <p class="mb-1">${section.description}</p>
+                    </a>
+                `);
+            });
+
+            // Section click handlers
+            $('#sectionList .list-group-item').on('click', function(e) {
+                e.preventDefault();
+                const section = $(this).data('section');
+                selectSection(section);
+            });
+        });
+}
+
+function selectSection(sectionName) {
+    currentSection = sectionName;
+    $('#sectionList .list-group-item').removeClass('active');
+    $(`#sectionList .list-group-item[data-section="${sectionName}"]`).addClass('active');
+    
+    const title = sectionName === 'all' ? 'All Configurations' : sectionName;
+    $('#configSectionTitle').text(title);
+    
+    filterConfigurations();
+}
+
+function loadConfigurations() {
+    $.get('/api/system-configuration')
+        .done(function(data) {
+            configurations = data;
+            filteredConfigurations = data;
+            populateFilters();
+            displayConfigurations();
+            updateConfigurationCount();
+        })
+        .fail(function() {
+            showNotification('Failed to load configurations', 'error');
+        });
+}
+
+function populateFilters() {
+    const categories = [...new Set(configurations.map(c => c.category))].sort();
+    const sections = [...new Set(configurations.map(c => c.section))].sort();
+
+    const categoryFilter = $('#categoryFilter');
+    categoryFilter.find('option:not(:first)').remove();
+    categories.forEach(category => {
+        categoryFilter.append(`<option value="${category}">${category}</option>`);
+    });
+
+    const sectionFilter = $('#sectionFilter');
+    sectionFilter.find('option:not(:first)').remove();
+    sections.forEach(section => {
+        sectionFilter.append(`<option value="${section}">${section}</option>`);
+    });
+}
+
+function filterConfigurations() {
+    const searchTerm = $('#searchInput').val().toLowerCase();
+    const selectedCategory = $('#categoryFilter').val();
+    const selectedSection = $('#sectionFilter').val();
+    const showAdvanced = $('#showAdvanced').is(':checked');
+    const showReadOnly = $('#showReadOnly').is(':checked');
+    const showRequireRestart = $('#showRequireRestart').is(':checked');
+
+    filteredConfigurations = configurations.filter(config => {
+        const matchesSearch = !searchTerm || 
+            config.key.toLowerCase().includes(searchTerm) ||
+            config.displayName?.toLowerCase().includes(searchTerm) ||
+            config.description?.toLowerCase().includes(searchTerm);
+
+        const matchesCategory = !selectedCategory || config.category === selectedCategory;
+        const matchesSection = !selectedSection || config.section === selectedSection;
+        const matchesSectionNav = currentSection === 'all' || config.section === currentSection;
+        
+        const matchesAdvanced = !config.isAdvanced || showAdvanced;
+        const matchesReadOnly = !config.isReadOnly || showReadOnly;
+        const matchesRestart = !config.requiresRestart || showRequireRestart;
+
+        return matchesSearch && matchesCategory && matchesSection && 
+               matchesSectionNav && matchesAdvanced && matchesReadOnly && matchesRestart;
+    });
+
+    displayConfigurations();
+    updateConfigurationCount();
+}
+
+function displayConfigurations() {
+    const container = $('#configurationsContainer');
+    container.empty();
+
+    if (filteredConfigurations.length === 0) {
+        container.append(`
+            <div class="text-center py-4">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No configurations found matching your criteria.</p>
+            </div>
+        `);
+        return;
+    }
+
+    const groupedBySection = groupBy(filteredConfigurations, 'section');
+
+    Object.entries(groupedBySection).forEach(([section, configs]) => {
+        const sectionDiv = $(`
+            <div class="configuration-section mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                    <i class="fas fa-cog me-2"></i>${section}
+                    <small class="text-muted ms-2">(${configs.length} items)</small>
+                </h5>
+                <div class="row" id="section-${section.replace(/\s+/g, '-')}"></div>
+            </div>
+        `);
+
+        const sectionContainer = sectionDiv.find('.row');
+        
+        configs.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+              .forEach(config => {
+                  const configCard = createConfigurationCard(config);
+                  sectionContainer.append(configCard);
+              });
+
+        container.append(sectionDiv);
+    });
+}
+
+function createConfigurationCard(config) {
+    const badges = [];
+    if (config.isReadOnly) badges.push('<span class="badge bg-secondary">Read-Only</span>');
+    if (config.requiresRestart) badges.push('<span class="badge bg-warning">Restart Required</span>');
+    if (config.isAdvanced) badges.push('<span class="badge bg-info">Advanced</span>');
+
+    const valueInput = createValueInput(config);
+
+    return $(`
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-title mb-1">${config.displayName || config.key}</h6>
+                        <small class="text-muted">${config.key}</small>
+                    </div>
+                    <div>
+                        ${badges.join(' ')}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text small text-muted">${config.description || 'No description available'}</p>
+                    <div class="mb-2">
+                        <label class="form-label small">Current Value:</label>
+                        ${valueInput}
+                    </div>
+                    ${config.defaultValue ? `<small class="text-muted d-block">Default: ${config.defaultValue}</small>` : ''}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Updated: ${new Date(config.updatedAt).toLocaleDateString()}
+                            ${config.updatedBy ? `by ${config.updatedBy}` : ''}
+                        </small>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-primary" onclick="editConfiguration(${config.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${!config.isReadOnly ? `
+                                <button type="button" class="btn btn-outline-warning" onclick="resetConfiguration(${config.id})">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+}
+
+function createValueInput(config) {
+    const isReadOnly = config.isReadOnly;
+    const changeHandler = isReadOnly ? '' : `onchange="markConfigurationChanged(${config.id}, this.value)"`;
+
+    switch(config.dataType) {
+        case 'bool':
+            return `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" 
+                           id="value_${config.id}" 
+                           ${config.value === 'true' ? 'checked' : ''} 
+                           ${isReadOnly ? 'disabled' : ''}
+                           ${changeHandler}>
+                    <label class="form-check-label" for="value_${config.id}">
+                        ${config.value === 'true' ? 'Enabled' : 'Disabled'}
+                    </label>
+                </div>
+            `;
+
+        case 'int':
+        case 'decimal':
+            const numberType = config.dataType === 'int' ? 'number' : 'number';
+            const step = config.dataType === 'decimal' ? '0.01' : '1';
+            return `
+                <input type="${numberType}" class="form-control" 
+                       id="value_${config.id}" 
+                       value="${config.value}" 
+                       step="${step}"
+                       ${isReadOnly ? 'readonly' : ''}
+                       ${changeHandler}>
+            `;
+
+        default:
+            if (config.allowedValues && config.allowedValues.length > 0) {
+                let options = config.allowedValues.map(val => 
+                    `<option value="${val}" ${val === config.value ? 'selected' : ''}>${val}</option>`
+                ).join('');
+                
+                return `
+                    <select class="form-select" 
+                            id="value_${config.id}" 
+                            ${isReadOnly ? 'disabled' : ''}
+                            ${changeHandler}>
+                        ${options}
+                    </select>
+                `;
+            } else {
+                return `
+                    <input type="text" class="form-control" 
+                           id="value_${config.id}" 
+                           value="${config.value}" 
+                           ${isReadOnly ? 'readonly' : ''}
+                           ${changeHandler}>
+                `;
+            }
+    }
+}
+
+function markConfigurationChanged(configId, newValue) {
+    const config = configurations.find(c => c.id === configId);
+    if (config && config.value !== newValue) {
+        config.pendingValue = newValue;
+        hasUnsavedChanges = true;
+        $('#saveChanges, #discardChanges').show();
+        
+        // Update checkbox label for boolean values
+        if (config.dataType === 'bool') {
+            const checkbox = $(`#value_${configId}`);
+            const label = checkbox.next('label');
+            label.text(checkbox.is(':checked') ? 'Enabled' : 'Disabled');
+        }
+        
+        // Visual indicator
+        $(`#value_${configId}`).addClass('border-warning');
+    }
+}
+
+function saveAllChanges() {
+    const changedConfigs = configurations
+        .filter(c => c.pendingValue !== undefined)
+        .reduce((acc, c) => {
+            acc[c.key] = c.pendingValue;
+            return acc;
+        }, {});
+
+    if (Object.keys(changedConfigs).length === 0) {
+        showNotification('No changes to save', 'info');
+        return;
+    }
+
+    const bulkUpdate = {
+        configurations: changedConfigs,
+        updatedBy: 'Admin'
+    };
+
+    $.ajax({
+        url: '/api/system-configuration/bulk-update',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(bulkUpdate)
+    })
+    .done(function(result) {
+        if (result.success) {
+            showNotification(result.message, 'success');
+            if (result.requiresRestart) {
+                showNotification('Some changes require application restart to take effect', 'warning');
+            }
+            loadConfigurations();
+            clearPendingChanges();
+        } else {
+            showNotification('Failed to save some configurations', 'error');
+        }
+    })
+    .fail(function() {
+        showNotification('Failed to save configurations', 'error');
+    });
+}
+
+function clearPendingChanges() {
+    configurations.forEach(c => delete c.pendingValue);
+    hasUnsavedChanges = false;
+    $('#saveChanges, #discardChanges').hide();
+    $('.border-warning').removeClass('border-warning');
+}
+
+function discardChanges() {
+    clearPendingChanges();
+    loadConfigurations();
+}
+
+function editConfiguration(configId) {
+    const config = configurations.find(c => c.id === configId);
+    if (!config) return;
+
+    // Populate modal form
+    $('#configId').val(config.id);
+    $('#configKey').val(config.key);
+    $('#configDisplayName').val(config.displayName);
+    $('#configDescription').val(config.description);
+    $('#configCategory').val(config.category);
+    $('#configSection').val(config.section);
+    $('#configDataType').val(config.dataType);
+    $('#configDisplayOrder').val(config.displayOrder);
+    $('#configDefaultValue').val(config.defaultValue);
+    $('#configIsReadOnly').prop('checked', config.isReadOnly);
+    $('#configRequiresRestart').prop('checked', config.requiresRestart);
+    $('#configIsAdvanced').prop('checked', config.isAdvanced);
+
+    // Create value input based on type
+    updateValueInput(config);
+
+    $('#configModal').modal('show');
+}
+
+function updateValueInput(config) {
+    const container = $('#valueInputContainer');
+    let input;
+
+    switch(config.dataType) {
+        case 'bool':
+            input = `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="configValue" 
+                           ${config.value === 'true' ? 'checked' : ''}>
+                    <label class="form-check-label" for="configValue">
+                        ${config.value === 'true' ? 'Enabled' : 'Disabled'}
+                    </label>
+                </div>
+            `;
+            break;
+
+        case 'int':
+            input = `<input type="number" class="form-control" id="configValue" value="${config.value}" step="1">`;
+            break;
+
+        case 'decimal':
+            input = `<input type="number" class="form-control" id="configValue" value="${config.value}" step="0.01">`;
+            break;
+
+        default:
+            if (config.allowedValues && config.allowedValues.length > 0) {
+                const options = config.allowedValues.map(val => 
+                    `<option value="${val}" ${val === config.value ? 'selected' : ''}>${val}</option>`
+                ).join('');
+                input = `<select class="form-select" id="configValue">${options}</select>`;
+            } else {
+                input = `<input type="text" class="form-control" id="configValue" value="${config.value}">`;
+            }
+    }
+
+    container.html(input);
+
+    // Update checkbox label dynamically
+    if (config.dataType === 'bool') {
+        $('#configValue').on('change', function() {
+            $(this).next('label').text($(this).is(':checked') ? 'Enabled' : 'Disabled');
+        });
+    }
+}
+
+function saveConfiguration() {
+    const configId = $('#configId').val();
+    let value = $('#configValue').val();
+
+    if ($('#configValue').attr('type') === 'checkbox') {
+        value = $('#configValue').is(':checked') ? 'true' : 'false';
+    }
+
+    const updateData = {
+        value: value,
+        updatedBy: 'Admin'
+    };
+
+    $.ajax({
+        url: `/api/system-configuration/${configId}`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(updateData)
+    })
+    .done(function() {
+        showNotification('Configuration updated successfully', 'success');
+        $('#configModal').modal('hide');
+        loadConfigurations();
+    })
+    .fail(function(xhr) {
+        const error = xhr.responseJSON?.message || 'Failed to update configuration';
+        showNotification(error, 'error');
+    });
+}
+
+function resetConfiguration(configId) {
+    if (!confirm('Are you sure you want to reset this configuration to its default value?')) {
+        return;
+    }
+
+    $.post(`/api/system-configuration/${configId}/reset?updatedBy=Admin`)
+        .done(function(result) {
+            showNotification(result.message, 'success');
+            if (result.requiresRestart) {
+                showNotification('This change requires application restart to take effect', 'warning');
+            }
+            loadConfigurations();
+        })
+        .fail(function() {
+            showNotification('Failed to reset configuration', 'error');
+        });
+}
+
+function resetConfigurationToDefault() {
+    const configId = $('#configId').val();
+    resetConfiguration(configId);
+    $('#configModal').modal('hide');
+}
+
+function loadTemplates() {
+    $.get('/api/system-configuration/templates')
+        .done(function(templates) {
+            const dropdown = $('#templatesDropdown');
+            dropdown.empty();
+
+            templates.forEach(template => {
+                dropdown.append(`
+                    <li><a class="dropdown-item" href="#" onclick="applyTemplate('${template.templateName}')">
+                        <strong>${template.templateName}</strong><br>
+                        <small class="text-muted">${template.description}</small>
+                    </a></li>
+                `);
+            });
+        });
+}
+
+function applyTemplate(templateName) {
+    if (!confirm(`Are you sure you want to apply the '${templateName}' template? This will override multiple configuration values.`)) {
+        return;
+    }
+
+    $.post(`/api/system-configuration/templates/${templateName}/apply?appliedBy=Admin`)
+        .done(function(result) {
+            if (result.success) {
+                showNotification(result.message, 'success');
+                loadConfigurations();
+            } else {
+                showNotification('Failed to apply template', 'error');
+            }
+        })
+        .fail(function() {
+            showNotification('Error applying template', 'error');
+        });
+}
+
+function exportConfigurations() {
+    const exportRequest = {
+        format: 'json',
+        includeAdvanced: $('#showAdvanced').is(':checked'),
+        includeReadOnly: $('#showReadOnly').is(':checked')
+    };
+
+    $.ajax({
+        url: '/api/system-configuration/export',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(exportRequest),
+        xhrFields: { responseType: 'blob' }
+    })
+    .done(function(data, status, xhr) {
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `configurations_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        showNotification('Configurations exported successfully', 'success');
+    })
+    .fail(function() {
+        showNotification('Failed to export configurations', 'error');
+    });
+}
+
+function performImport() {
+    const importData = $('#importData').val();
+    if (!importData.trim()) {
+        showNotification('Please paste configuration data to import', 'warning');
+        return;
+    }
+
+    try {
+        JSON.parse(importData); // Validate JSON
+    } catch (e) {
+        showNotification('Invalid JSON format', 'error');
+        return;
+    }
+
+    const importRequest = {
+        data: importData,
+        format: 'json',
+        overwriteExisting: $('#overwriteExisting').is(':checked'),
+        validateOnly: $('#validateOnly').is(':checked'),
+        importedBy: 'Admin'
+    };
+
+    $.ajax({
+        url: '/api/system-configuration/import',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(importRequest)
+    })
+    .done(function(result) {
+        if (result.success) {
+            const action = importRequest.validateOnly ? 'validated' : 'imported';
+            showNotification(`Configurations ${action} successfully`, 'success');
+            if (!importRequest.validateOnly) {
+                loadConfigurations();
+            }
+            $('#importModal').modal('hide');
+        } else {
+            showNotification(`Import failed: ${result.errors.join(', ')}`, 'error');
+        }
+    })
+    .fail(function() {
+        showNotification('Import operation failed', 'error');
+    });
+}
+
+function updateConfigurationCount() {
+    const total = configurations.length;
+    const filtered = filteredConfigurations.length;
+    $('#allCount').text(total);
+    
+    if (filtered !== total) {
+        $('#allCount').text(`${filtered}/${total}`);
+    }
+}
+
+function updateServiceStatus(serviceName, isRunning) {
+    // Update service status in health display
+    const serviceElement = $(`small:contains("${serviceName}:")`).find('.badge');
+    if (serviceElement.length > 0) {
+        serviceElement.removeClass('bg-success bg-danger')
+                     .addClass(isRunning ? 'bg-success' : 'bg-danger')
+                     .text(isRunning ? 'Running' : 'Stopped');
+    }
+}
+
+// Utility functions
+function groupBy(array, key) {
+    return array.reduce((result, item) => {
+        const group = item[key];
+        if (!result[group]) result[group] = [];
+        result[group].push(item);
+        return result;
+    }, {});
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function showNotification(message, type) {
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+
+    const alert = $(`
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `);
+
+    // Add to top of page
+    $('.container-fluid').prepend(alert);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        alert.alert('close');
+    }, 5000);
+}
+
+// Warn about unsaved changes
+window.addEventListener('beforeunload', function (e) {
+    if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+</script>
+}

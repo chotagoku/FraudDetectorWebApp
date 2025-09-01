@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FraudDetectorWebApp.Models
 {
-    public class ApiConfiguration
+    public class ApiConfiguration : ISoftDelete
     {
         public int Id { get; set; }
         

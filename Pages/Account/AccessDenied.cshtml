@@ -1,0 +1,61 @@
+@page
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-shield-alt text-danger" style="font-size: 4rem;"></i>
+                    </div>
+                    <h2 class="card-title text-danger mb-3">Access Denied</h2>
+                    <p class="card-text text-muted mb-4">
+                        You don't have permission to access this resource.
+                        @if (!User.Identity.IsAuthenticated)
+                        {
+                            <br/>@:Please log in to continue.
+                        }
+                        else if (!User.IsInRole("Admin"))
+                        {
+                            <br/>@:This area requires administrator privileges.
+                        }
+                    </p>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        @if (!User.Identity.IsAuthenticated)
+                        {
+                            <a href="/Account/Login" class="btn btn-primary me-md-2">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </a>
+                            <a href="/Account/Register" class="btn btn-outline-primary">
+                                <i class="fas fa-user-plus me-2"></i>Register
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="/" class="btn btn-primary me-md-2">
+                                <i class="fas fa-home me-2"></i>Return Home
+                            </a>
+                            <button onclick="history.back()" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Go Back
+                            </button>
+                        }
+                    </div>
+                    
+                    @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin"))
+                    {
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                If you believe you should have access to this resource, please contact your system administrator.
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

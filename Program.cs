@@ -2,6 +2,7 @@ using FraudDetectorWebApp.Data;
 using FraudDetectorWebApp.Services;
 using FraudDetectorWebApp.Hubs;
 using FraudDetectorWebApp.Middleware;
+using FraudDetectorWebApp.Filters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -45,12 +46,34 @@ builder.Services.AddAuthentication("Cookies")
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddControllers()
+// Add Antiforgery services for CSRF protection
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "__Xsrf-Token";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
+
+builder.Services.AddControllers(options =>
+    {
+        // Add global model state validation filter
+        options.Filters.Add<ModelStateValidationFilter>();
+        // Add global validation attribute for all actions
+        options.Filters.Add<ValidateModelStateAttribute>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.MaxDepth = 64;
+        options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // Suppress default model state validation to use our custom filter
+        options.SuppressModelStateInvalidFilter = true;
     });
 builder.Services.AddSignalR();
 
@@ -84,6 +107,7 @@ builder.Services.AddScoped<FraudDetectorWebApp.Repositories.IUserRepository, Fra
 
 // Add Database Seeder
 builder.Services.AddScoped<DatabaseSeeder>();
+builder.Services.AddScoped<ConfigurationSeeder>();
 
 // Add HttpClient for API requests
 builder.Services.AddHttpClient();
@@ -95,6 +119,19 @@ builder.Services.AddHostedService(provider => provider.GetRequiredService<ApiReq
 // Add Windows Service related services
 builder.Services.AddSingleton<WindowsServiceInstaller>();
 builder.Services.AddHostedService<LiveDataService>();
+
+// Add Data Retention and Auto Generation Services
+builder.Services.AddSingleton<DataRetentionService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<DataRetentionService>());
+
+builder.Services.AddSingleton<AutoScenarioGenerationService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<AutoScenarioGenerationService>());
+
+// Add Configuration Service for System Configuration Management
+builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
+
+// Add Permission Service for Role-Based Access Control
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 // Add CORS for API calls from frontend and SignalR
 builder.Services.AddCors(options =>
@@ -128,6 +165,14 @@ using (var scope = app.Services.CreateScope())
         // Seed default data if needed
         var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
         await seeder.SeedAsync();
+        
+        // Seed default system configurations
+        var configSeeder = scope.ServiceProvider.GetRequiredService<ConfigurationSeeder>();
+        await configSeeder.SeedDefaultConfigurationsAsync();
+        
+        // Initialize permission system
+        var permissionService = scope.ServiceProvider.GetRequiredService<IPermissionService>();
+        await permissionService.InitializeSystemPermissionsAsync();
     }
     catch (Exception ex)
     {
@@ -138,8 +183,20 @@ using (var scope = app.Services.CreateScope())
 }
 
 
+// Add security middleware (should be early in pipeline)
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<RequestSizeLimitMiddleware>();
+app.UseMiddleware<ApiRateLimitingMiddleware>();
+
+// Add global error handling middleware
+app.UseMiddleware<GlobalErrorHandlingMiddleware>();
+
 // Add custom error logging middleware
 app.UseMiddleware<ErrorLoggingMiddleware>();
+
+// Add admin access logging and CSRF protection
+app.UseMiddleware<AdminAccessLoggingMiddleware>();
+app.UseMiddleware<CsrfProtectionMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -166,5 +223,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapRazorPages();
 app.MapHub<ApiTestHub>("/hubs/apitest");
+app.MapHub<ConfigurationHub>("/hubs/configuration");
 
 app.Run();

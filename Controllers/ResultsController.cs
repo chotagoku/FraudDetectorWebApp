@@ -222,22 +222,34 @@ namespace FraudDetectorWebApp.Controllers
 
             var logs = await _context.ApiRequestLogs.Where(l => l.ApiConfigurationId == configurationId).ToListAsync();
 
-            _context.ApiRequestLogs.RemoveRange(logs);
+            // Soft delete instead of hard delete
+            foreach(var log in logs)
+            {
+                log.IsDeleted = true;
+                log.DeletedAt = DateTime.UtcNow;
+            }
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = $"Deleted {logs.Count} request logs for configuration {configuration.Name}" });
+            return Ok(
+                new { message = $"Soft deleted {logs.Count} request logs for configuration {configuration.Name}" });
         }
 
         [HttpDelete]
         public async Task<IActionResult> DeleteAllResults()
         {
             var allLogs = await _context.ApiRequestLogs.ToListAsync();
-            _context.ApiRequestLogs.RemoveRange(allLogs);
+
+            // Soft delete instead of hard delete
+            foreach(var log in allLogs)
+            {
+                log.IsDeleted = true;
+                log.DeletedAt = DateTime.UtcNow;
+            }
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = $"Deleted {allLogs.Count} request logs" });
+            return Ok(new { message = $"Soft deleted {allLogs.Count} request logs" });
         }
-        
+
         [HttpGet("combined")]
         public async Task<ActionResult<IEnumerable<object>>> GetCombinedResults(
             [FromQuery] int page = 1,
@@ -246,134 +258,371 @@ namespace FraudDetectorWebApp.Controllers
         {
             // Get API request logs
             var logsQuery = _context.ApiRequestLogs.AsQueryable();
-            if (configurationId.HasValue)
+            if(configurationId.HasValue)
             {
                 logsQuery = logsQuery.Where(l => l.ApiConfigurationId == configurationId.Value);
             }
-            
+
             var apiLogs = await logsQuery
                 .OrderByDescending(l => l.RequestTimestamp)
                 .Take(pageSize * 10) // Get more to combine with scenarios
                 .ToListAsync();
-                
+
             // Get generated scenarios  
             var scenariosQuery = _context.GeneratedScenarios.AsQueryable();
-            if (configurationId.HasValue)
+            if(configurationId.HasValue)
             {
                 scenariosQuery = scenariosQuery.Where(s => s.ConfigurationId == configurationId.Value);
             }
-            
+
             var scenarios = await scenariosQuery
                 .OrderByDescending(s => s.GeneratedAt)
                 .Take(pageSize * 10)
                 .ToListAsync();
-                
+
             // Combine and create unified results
             var combinedResults = new List<object>();
-            
+
             // Add API test results
-            foreach (var log in apiLogs)
+            foreach(var log in apiLogs)
             {
                 // Try to extract scenario data from the request payload
                 string fromName = "Unknown", toName = "Unknown", riskLevel = "unknown";
                 decimal amount = 0;
-                
+
                 try
                 {
                     var requestData = System.Text.Json.JsonSerializer.Deserialize<dynamic>(log.RequestPayload);
                     // Parse the content if it's in the expected format
                     var payloadStr = log.RequestPayload;
-                    if (payloadStr.Contains("FromName:"))
+                    if(payloadStr.Contains("FromName:"))
                     {
                         var fromMatch = System.Text.RegularExpressions.Regex.Match(payloadStr, @"FromName: ([^\n]+)");
-                        if (fromMatch.Success) fromName = fromMatch.Groups[1].Value;
-                        
+                        if(fromMatch.Success)
+                            fromName = fromMatch.Groups[1].Value;
+
                         var toMatch = System.Text.RegularExpressions.Regex.Match(payloadStr, @"ToName: ([^\n]+)");
-                        if (toMatch.Success) toName = toMatch.Groups[1].Value;
-                        
+                        if(toMatch.Success)
+                            toName = toMatch.Groups[1].Value;
+
                         var amountMatch = System.Text.RegularExpressions.Regex.Match(payloadStr, @"Amount: (\d+)");
-                        if (amountMatch.Success) decimal.TryParse(amountMatch.Groups[1].Value, out amount);
-                        
-                        var riskMatch = System.Text.RegularExpressions.Regex.Match(payloadStr, @"Amount Risk Score: (\d+)");
-                        if (riskMatch.Success)
+                        if(amountMatch.Success)
+                            decimal.TryParse(amountMatch.Groups[1].Value, out amount);
+
+                        var riskMatch = System.Text.RegularExpressions.Regex
+                            .Match(payloadStr, @"Amount Risk Score: (\d+)");
+                        if(riskMatch.Success)
                         {
                             var score = int.Parse(riskMatch.Groups[1].Value);
                             riskLevel = score <= 3 ? "low" : score <= 6 ? "medium" : "high";
                         }
                     }
-                }
-                catch (Exception ex)
+                } catch(Exception ex)
                 {
                     _logger.LogWarning("Could not parse request payload for log {LogId}: {Error}", log.Id, ex.Message);
                 }
-                
-                combinedResults.Add(new
-                {
-                    id = log.Id,
-                    type = "api_test",
-                    iterationNumber = log.IterationNumber,
-                    requestTimestamp = log.RequestTimestamp,
-                    responseTimeMs = log.ResponseTimeMs,
-                    isSuccessful = log.IsSuccessful,
-                    isTested = true,
-                    statusCode = log.StatusCode,
-                    requestPayload = log.RequestPayload,
-                    responseContent = log.ResponseContent,
-                    errorMessage = log.ErrorMessage,
-                    configurationId = log.ApiConfigurationId,
-                    // Extracted data from payload
-                    fromName = fromName,
-                    toName = toName,
-                    amount = amount,
-                    riskLevel = riskLevel,
-                    generatedScenarioId = log.GeneratedScenarioId
-                });
+
+                combinedResults.Add(
+                    new
+                    {
+                        id = log.Id,
+                        type = "api_test",
+                        iterationNumber = log.IterationNumber,
+                        requestTimestamp = log.RequestTimestamp,
+                        responseTimeMs = log.ResponseTimeMs,
+                        isSuccessful = log.IsSuccessful,
+                        isTested = true,
+                        statusCode = log.StatusCode,
+                        requestPayload = log.RequestPayload,
+                        responseContent = log.ResponseContent,
+                        errorMessage = log.ErrorMessage,
+                        configurationId = log.ApiConfigurationId,
+                        // Extracted data from payload
+                        fromName = fromName,
+                        toName = toName,
+                        amount = amount,
+                        riskLevel = riskLevel,
+                        generatedScenarioId = log.GeneratedScenarioId
+                    });
             }
-            
+
             // Add untested scenarios
-            foreach (var scenario in scenarios)
+            foreach(var scenario in scenarios)
             {
                 // Only add scenarios that don't have a linked API test
                 var hasApiTest = apiLogs.Any(l => l.GeneratedScenarioId == scenario.Id);
-                if (!hasApiTest)
+                if(!hasApiTest)
                 {
-                    combinedResults.Add(new
-                    {
-                        id = scenario.Id,
-                        type = "scenario", 
-                        iterationNumber = scenario.Id,
-                        requestTimestamp = scenario.GeneratedAt,
-                        responseTimeMs = scenario.ResponseTimeMs ?? 0,
-                        isSuccessful = scenario.TestSuccessful ?? false,
-                        isTested = scenario.IsTested,
-                        statusCode = scenario.LastStatusCode ?? 0,
-                        requestPayload = scenario.ScenarioJson,
-                        responseContent = scenario.TestResponse,
-                        errorMessage = scenario.TestErrorMessage,
-                        configurationId = scenario.ConfigurationId,
-                        // Scenario data
-                        fromName = scenario.FromName,
-                        toName = scenario.ToName,
-                        amount = scenario.Amount,
-                        riskLevel = scenario.RiskLevel,
-                        generatedScenarioId = scenario.Id
-                    });
+                    combinedResults.Add(
+                        new
+                        {
+                            id = scenario.Id,
+                            type = "scenario",
+                            iterationNumber = scenario.Id,
+                            requestTimestamp = scenario.GeneratedAt,
+                            responseTimeMs = scenario.ResponseTimeMs ?? 0,
+                            isSuccessful = scenario.TestSuccessful ?? false,
+                            isTested = scenario.IsTested,
+                            statusCode = scenario.LastStatusCode ?? 0,
+                            requestPayload = scenario.ScenarioJson,
+                            responseContent = scenario.TestResponse,
+                            errorMessage = scenario.TestErrorMessage,
+                            configurationId = scenario.ConfigurationId,
+                            // Scenario data
+                            fromName = scenario.FromName,
+                            toName = scenario.ToName,
+                            amount = scenario.Amount,
+                            riskLevel = scenario.RiskLevel,
+                            generatedScenarioId = scenario.Id
+                        });
                 }
             }
-            
+
             // Sort combined results by timestamp and take the requested page
             var sortedResults = combinedResults
                 .OrderByDescending(r => (DateTime)r.GetType().GetProperty("requestTimestamp").GetValue(r))
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
-                
+
             var totalCount = combinedResults.Count;
             Response.Headers["X-Total-Count"] = totalCount.ToString();
             Response.Headers["X-Page"] = page.ToString();
             Response.Headers["X-Page-Size"] = pageSize.ToString();
 
             return Ok(sortedResults);
+        }
+
+        [HttpGet("grouped")]
+        public async Task<ActionResult<object>> GetGroupedResults(
+            [FromQuery] string groupBy = "day", // day, hour, configuration, period
+            [FromQuery] int? configurationId = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string period = "week") // day, week, month, year
+        {
+            var query = _context.ApiRequestLogs.AsQueryable();
+
+            if(configurationId.HasValue)
+            {
+                query = query.Where(l => l.ApiConfigurationId == configurationId.Value);
+            }
+
+            if(startDate.HasValue)
+            {
+                query = query.Where(l => l.RequestTimestamp >= startDate.Value);
+            }
+
+            if(endDate.HasValue)
+            {
+                query = query.Where(l => l.RequestTimestamp <= endDate.Value);
+            }
+
+            var results = await query.ToListAsync();
+
+            object groupedData = groupBy.ToLower() switch
+            {
+                "day" => results
+                    .GroupBy(l => l.RequestTimestamp.Date)
+                    .Select(
+                        g => new
+                        {
+                            date = g.Key,
+                            count = g.Count(),
+                            successfulCount = g.Count(l => l.IsSuccessful),
+                            failedCount = g.Count(l => !l.IsSuccessful),
+                            averageResponseTime = g.Where(l => l.IsSuccessful).Average(l => (double?)l.ResponseTimeMs) ??
+                                0,
+                            totalResponseTime = g.Sum(l => l.ResponseTimeMs)
+                        })
+                    .OrderByDescending(x => x.date)
+                    .ToList(),
+
+                "hour" => results
+                    .GroupBy(l => new { l.RequestTimestamp.Date, l.RequestTimestamp.Hour })
+                    .Select(
+                        g => new
+                        {
+                            date = g.Key.Date,
+                            hour = g.Key.Hour,
+                            count = g.Count(),
+                            successfulCount = g.Count(l => l.IsSuccessful),
+                            failedCount = g.Count(l => !l.IsSuccessful),
+                            averageResponseTime = g.Where(l => l.IsSuccessful).Average(l => (double?)l.ResponseTimeMs) ??
+                                0
+                        })
+                    .OrderByDescending(x => x.date)
+                    .ThenByDescending(x => x.hour)
+                    .ToList(),
+
+                "configuration" => results
+                    .GroupBy(l => new { l.ApiConfigurationId, ConfigName = l.ApiConfiguration.Name })
+                    .Select(
+                        g => new
+                        {
+                            configurationId = g.Key.ApiConfigurationId,
+                            configurationName = g.Key.ConfigName,
+                            count = g.Count(),
+                            successfulCount = g.Count(l => l.IsSuccessful),
+                            failedCount = g.Count(l => !l.IsSuccessful),
+                            averageResponseTime = g.Where(l => l.IsSuccessful).Average(l => (double?)l.ResponseTimeMs) ??
+                                0,
+                            lastRequest = g.Max(l => l.RequestTimestamp)
+                        })
+                    .OrderByDescending(x => x.count)
+                    .ToList(),
+
+                "period" => GetPeriodGroupedResults(results, period),
+
+                _ => throw new ArgumentException($"Invalid groupBy parameter: {groupBy}")
+            };
+
+            return Ok(new { groupBy = groupBy, period = period, totalRecords = results.Count, data = groupedData });
+        }
+
+        [HttpGet("deleted")]
+        public async Task<ActionResult<IEnumerable<object>>> GetDeletedResults(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            var deletedLogs = await _context.ApiRequestLogs
+                .IgnoreQueryFilters()
+                .Where(l => l.IsDeleted)
+                .OrderByDescending(l => l.DeletedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(
+                    l => new
+                    {
+                        l.Id,
+                        l.ApiConfigurationId,
+                        l.RequestTimestamp,
+                        l.DeletedAt,
+                        l.IsSuccessful,
+                        l.StatusCode,
+                        l.ResponseTimeMs,
+                        l.IterationNumber,
+                        ApiConfigurationName = l.ApiConfiguration.Name
+                    })
+                .ToListAsync();
+
+            var totalCount = await _context.ApiRequestLogs.IgnoreQueryFilters().CountAsync(l => l.IsDeleted);
+
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+            Response.Headers["X-Page"] = page.ToString();
+            Response.Headers["X-Page-Size"] = pageSize.ToString();
+
+            return Ok(deletedLogs);
+        }
+
+        [HttpPost("{id}/restore")]
+        public async Task<ActionResult> RestoreResult(int id)
+        {
+            var log = await _context.ApiRequestLogs
+                .IgnoreQueryFilters()
+                .Where(l => l.Id == id && l.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if(log == null)
+                return NotFound();
+
+            // Restore from soft delete
+            log.IsDeleted = false;
+            log.DeletedAt = null;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Request log restored successfully" });
+        }
+
+        private object GetPeriodGroupedResults(List<ApiRequestLog> results, string period)
+        {
+            return period.ToLower() switch
+            {
+                "week" => results
+                    .GroupBy(l => new { Year = l.RequestTimestamp.Year, Week = GetWeekOfYear(l.RequestTimestamp) })
+                    .Select(
+                        g => new
+                        {
+                            year = g.Key.Year,
+                            week = g.Key.Week,
+                            weekStart = GetWeekStart(g.Key.Year, g.Key.Week),
+                            count = g.Count(),
+                            successfulCount = g.Count(l => l.IsSuccessful),
+                            failedCount = g.Count(l => !l.IsSuccessful),
+                            averageResponseTime = g.Where(l => l.IsSuccessful).Average(l => (double?)l.ResponseTimeMs) ??
+                                0
+                        })
+                    .OrderByDescending(x => x.year)
+                    .ThenByDescending(x => x.week)
+                    .ToList(),
+
+                "month" => results
+                    .GroupBy(l => new { l.RequestTimestamp.Year, l.RequestTimestamp.Month })
+                    .Select(
+                        g => new
+                        {
+                            year = g.Key.Year,
+                            month = g.Key.Month,
+                            monthName = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMMM"),
+                            count = g.Count(),
+                            successfulCount = g.Count(l => l.IsSuccessful),
+                            failedCount = g.Count(l => !l.IsSuccessful),
+                            averageResponseTime = g.Where(l => l.IsSuccessful).Average(l => (double?)l.ResponseTimeMs) ??
+                                0
+                        })
+                    .OrderByDescending(x => x.year)
+                    .ThenByDescending(x => x.month)
+                    .ToList(),
+
+                "year" => results
+                    .GroupBy(l => l.RequestTimestamp.Year)
+                    .Select(
+                        g => new
+                        {
+                            year = g.Key,
+                            count = g.Count(),
+                            successfulCount = g.Count(l => l.IsSuccessful),
+                            failedCount = g.Count(l => !l.IsSuccessful),
+                            averageResponseTime = g.Where(l => l.IsSuccessful).Average(l => (double?)l.ResponseTimeMs) ??
+                                0
+                        })
+                    .OrderByDescending(x => x.year)
+                    .ToList(),
+
+                _ => results
+                    .GroupBy(l => l.RequestTimestamp.Date)
+                    .Select(
+                        g => new
+                        {
+                            date = g.Key,
+                            count = g.Count(),
+                            successfulCount = g.Count(l => l.IsSuccessful),
+                            failedCount = g.Count(l => !l.IsSuccessful),
+                            averageResponseTime = g.Where(l => l.IsSuccessful).Average(l => (double?)l.ResponseTimeMs) ??
+                                0
+                        })
+                    .OrderByDescending(x => x.date)
+                    .ToList()
+            };
+        }
+
+        private static int GetWeekOfYear(DateTime dateTime)
+        {
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            var calendar = culture.Calendar;
+            return calendar.GetWeekOfYear(
+                dateTime,
+                culture.DateTimeFormat.CalendarWeekRule,
+                culture.DateTimeFormat.FirstDayOfWeek);
+        }
+
+        private static DateTime GetWeekStart(int year, int week)
+        {
+            var jan1 = new DateTime(year, 1, 1);
+            var daysOffset = (int)System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek -
+                (int)jan1.DayOfWeek;
+            var firstWeek = jan1.AddDays(daysOffset);
+            return firstWeek.AddDays((week - 1) * 7);
         }
     }
 }

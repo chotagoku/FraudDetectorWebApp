@@ -158,6 +158,14 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link nav-link-enhanced" asp-area="" asp-page="/BetaScenarios">
+                                <i class="fas fa-flask me-2"></i>
+                                <span class="nav-text">Beta Scenarios</span>
+                                <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7em;">BETA</span>
+                                <div class="nav-indicator"></div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link nav-link-enhanced" href="/Results" id="navResultsLink">
                                 <i class="fas fa-chart-line me-2"></i>
                                 <span class="nav-text">Results</span>
@@ -179,6 +187,28 @@
                                 <div class="nav-indicator"></div>
                             </a>
                         </li>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link nav-link-enhanced dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user-shield me-2"></i>
+                                    <span class="nav-text">Admin</span>
+                                    <div class="nav-indicator"></div>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-page="/Admin/SystemConfiguration">
+                                        <i class="fas fa-sliders-h me-2"></i>System Configuration
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-page="/Admin/UserManagement">
+                                        <i class="fas fa-users me-2"></i>User Management
+                                    </a></li>
+                                    <li><a class="dropdown-item" asp-page="/Admin/SystemLogs">
+                                        <i class="fas fa-chart-bar me-2"></i>System Logs
+                                    </a></li>
+                                </ul>
+                            </li>
+                        }
                     </ul>
                     
                     <div class="d-flex align-items-center">
@@ -292,6 +322,11 @@
                         <li class="mb-2">
                             <a asp-area="" asp-page="/Generator" class="text-white-50 text-decoration-none hover-text-white">
                                 <i class="fas fa-dice me-2"></i>Scenario Generator
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a asp-area="" asp-page="/BetaScenarios" class="text-white-50 text-decoration-none hover-text-white">
+                                <i class="fas fa-flask me-2"></i>Beta Scenarios
                             </a>
                         </li>
                         <li class="mb-2">

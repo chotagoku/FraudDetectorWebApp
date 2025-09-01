@@ -1,0 +1,1144 @@
+@page
+@{
+    ViewData["Title"] = "Scenarios - Advanced Story Generator";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header Section -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-scroll text-primary me-2"></i>Fraud Scenarios
+                    </h1>
+                    <p class="text-muted mb-0">Advanced fraud scenario generation with AI-powered storytelling</p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createScenarioModal">
+                        <i class="fas fa-plus me-2"></i>Create New Scenario
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Total Scenarios</h6>
+                                    <h3 class="mb-0" id="totalScenarios">0</h3>
+                                </div>
+                                <i class="fas fa-scroll fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Tested Scenarios</h6>
+                                    <h3 class="mb-0" id="testedScenarios">0</h3>
+                                </div>
+                                <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">High Risk</h6>
+                                    <h3 class="mb-0" id="highRiskScenarios">0</h3>
+                                </div>
+                                <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Favorites</h6>
+                                    <h3 class="mb-0" id="favoriteScenarios">0</h3>
+                                </div>
+                                <i class="fas fa-heart fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="searchInput" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search scenarios...">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="riskLevelFilter" class="form-label">Risk Level</label>
+                            <select class="form-select" id="riskLevelFilter">
+                                <option value="">All Risk Levels</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="categoryFilter" class="form-label">Category</label>
+                            <select class="form-select" id="categoryFilter">
+                                <option value="">All Categories</option>
+                                <option value="financial">Financial</option>
+                                <option value="identity">Identity Theft</option>
+                                <option value="payment">Payment Fraud</option>
+                                <option value="cybersecurity">Cybersecurity</option>
+                                <option value="money_laundering">Money Laundering</option>
+                                <option value="high_value">High Value</option>
+                                <option value="suspicious_pattern">Suspicious Pattern</option>
+                                <option value="unusual_timing">Unusual Timing</option>
+                                <option value="new_beneficiary">New Beneficiary</option>
+                                <option value="utility_payment">Utility Payment</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="statusFilter" class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="draft">Draft</option>
+                                <option value="active">Active</option>
+                                <option value="tested">Tested</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Favorites</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="favoritesOnly">
+                                <label class="form-check-label" for="favoritesOnly">
+                                    Show Favorites Only
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-outline-secondary d-block" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scenarios List -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Fraud Scenarios</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshScenarios()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="bulkGenerate()">
+                            <i class="fas fa-magic"></i> Bulk Generate
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="scenariosContainer">
+                        <!-- Loading indicator -->
+                        <div class="text-center py-5" id="loadingIndicator">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading scenarios...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading scenarios...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center" id="pagination">
+                    <!-- Pagination items will be generated by JavaScript -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Create Scenario Modal -->
+<div class="modal fade" id="createScenarioModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Create New Scenario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="scenarioForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="scenarioName" class="form-label">Scenario Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="scenarioName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="scenarioCategory" class="form-label">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="scenarioCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="financial">Financial Fraud</option>
+                                <option value="identity">Identity Theft</option>
+                                <option value="payment">Payment Fraud</option>
+                                <option value="cybersecurity">Cybersecurity</option>
+                                <option value="social">Social Engineering</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="scenarioRiskLevel" class="form-label">Risk Level <span class="text-danger">*</span></label>
+                            <select class="form-select" id="scenarioRiskLevel" required>
+                                <option value="">Select Risk Level</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="scenarioPriority" class="form-label">Priority</label>
+                            <select class="form-select" id="scenarioPriority">
+                                <option value="1">Low</option>
+                                <option value="2" selected>Medium</option>
+                                <option value="3">High</option>
+                                <option value="4">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="scenarioBusinessType" class="form-label">Business Type</label>
+                            <input type="text" class="form-control" id="scenarioBusinessType" placeholder="e.g., Banking, E-commerce">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="scenarioDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="scenarioDescription" rows="3" placeholder="Brief description of the scenario..."></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="userStory" class="form-label">User Story <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="userStory" rows="4" required placeholder="Describe the fraud scenario story in detail..."></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="scenarioConditions" class="form-label">Conditions & Triggers</label>
+                            <textarea class="form-control" id="scenarioConditions" rows="3" placeholder="What conditions trigger this scenario? (Optional)"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="scenarioTags" class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="scenarioTags" placeholder="e.g., mobile, online, suspicious">
+                            <small class="form-text text-muted">Comma-separated tags</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="useDatabaseData">
+                                <label class="form-check-label" for="useDatabaseData">
+                                    Use existing database data for generation
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="autoGenerateWatchlists">
+                                <label class="form-check-label" for="autoGenerateWatchlists">
+                                    Auto-generate watchlist entries
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createScenario()">
+                    <i class="fas fa-save me-2"></i>Create Scenario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scenario Details Modal -->
+<div class="modal fade" id="scenarioDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scenarioDetailsTitle">Scenario Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="scenarioDetailsBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-primary" onclick="testScenario(currentScenarioId)">
+                    <i class="fas fa-play me-2"></i>Test Scenario
+                </button>
+                <button type="button" class="btn btn-primary" onclick="editScenario(currentScenarioId)">
+                    <i class="fas fa-edit me-2"></i>Edit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Scenario Modal -->
+<div class="modal fade" id="editScenarioModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Edit Scenario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editScenarioForm">
+                    <input type="hidden" id="editScenarioId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="editScenarioName" class="form-label">Scenario Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editScenarioName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editScenarioCategory" class="form-label">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editScenarioCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="financial">Financial Fraud</option>
+                                <option value="identity">Identity Theft</option>
+                                <option value="payment">Payment Fraud</option>
+                                <option value="cybersecurity">Cybersecurity</option>
+                                <option value="social">Social Engineering</option>
+                                <option value="money_laundering">Money Laundering</option>
+                                <option value="high_value">High Value</option>
+                                <option value="suspicious_pattern">Suspicious Pattern</option>
+                                <option value="unusual_timing">Unusual Timing</option>
+                                <option value="new_beneficiary">New Beneficiary</option>
+                                <option value="utility_payment">Utility Payment</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editScenarioRiskLevel" class="form-label">Risk Level <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editScenarioRiskLevel" required>
+                                <option value="">Select Risk Level</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editScenarioPriority" class="form-label">Priority</label>
+                            <select class="form-select" id="editScenarioPriority">
+                                <option value="1">Low</option>
+                                <option value="2">Medium</option>
+                                <option value="3">High</option>
+                                <option value="4">Critical</option>
+                                <option value="5">Urgent</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editScenarioStatus" class="form-label">Status</label>
+                            <select class="form-select" id="editScenarioStatus">
+                                <option value="draft">Draft</option>
+                                <option value="active">Active</option>
+                                <option value="tested">Tested</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="editScenarioBusinessType" class="form-label">Business Type</label>
+                            <input type="text" class="form-control" id="editScenarioBusinessType" placeholder="e.g., Banking, E-commerce">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="editScenarioDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="editScenarioDescription" rows="3" placeholder="Brief description of the scenario..."></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="editUserStory" class="form-label">User Story <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="editUserStory" rows="4" required placeholder="Describe the fraud scenario story in detail..."></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="editScenarioConditions" class="form-label">Conditions & Triggers</label>
+                            <textarea class="form-control" id="editScenarioConditions" rows="3" placeholder="What conditions trigger this scenario? (Optional)"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="editScenarioTags" class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="editScenarioTags" placeholder="e.g., mobile, online, suspicious">
+                            <small class="form-text text-muted">Comma-separated tags</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateScenario()">
+                    <i class="fas fa-save me-2"></i>Update Scenario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+let scenarios = [];
+let filteredScenarios = [];
+let currentPage = 1;
+let pageSize = 10;
+let currentScenarioId = null;
+
+// Initialize page
+$(document).ready(function() {
+    loadScenarios();
+    setupEventHandlers();
+    loadStatistics();
+});
+
+function setupEventHandlers() {
+    $('#searchInput').on('keyup', debounce(filterScenarios, 300));
+    $('#riskLevelFilter, #categoryFilter, #statusFilter, #favoritesOnly').on('change', filterScenarios);
+}
+
+// Create comprehensive mock data for offline functionality
+function createMockScenarios() {
+    return [
+        {
+            id: 1,
+            name: 'Suspicious Wire Transfer',
+            description: 'Large wire transfer to high-risk country with unusual timing',
+            userStory: 'A customer initiates a wire transfer of $50,000 to an offshore account in a high-risk jurisdiction during non-business hours, which is unusual based on their historical transaction pattern.',
+            conditions: 'Amount > $10,000 AND Destination country risk level = High AND Time outside business hours',
+            riskLevel: 'high',
+            category: 'money_laundering',
+            businessType: 'Banking',
+            tags: 'wire-transfer, offshore, high-risk',
+            priority: 4,
+            status: 'active',
+            generatedAt: new Date('2025-01-15T10:30:00Z'),
+            generatedBy: 'System',
+            isTested: true,
+            isFavorite: true,
+            testCount: 5,
+            lastTestedAt: new Date('2025-01-20T14:30:00Z'),
+            generatedStory: 'Customer John Doe, a small business owner, attempts to send $50,000 to a shell company in the Cayman Islands at 11:47 PM on a Sunday. This transaction is flagged due to the unusual timing, high amount, and destination to a known tax haven.'
+        },
+        {
+            id: 2,
+            name: 'Identity Theft via Social Media',
+            description: 'Social engineering attack using information gathered from social media platforms',
+            userStory: 'An attacker uses publicly available social media information to impersonate a customer and attempt to gain access to their financial accounts through customer service.',
+            conditions: 'Login from new device AND Password reset requested AND Personal info matches social media',
+            riskLevel: 'medium',
+            category: 'identity',
+            businessType: 'Financial Services',
+            tags: 'social-engineering, identity-theft, social-media',
+            priority: 3,
+            status: 'tested',
+            generatedAt: new Date('2025-01-18T15:45:00Z'),
+            generatedBy: 'User',
+            isTested: true,
+            isFavorite: false,
+            testCount: 3,
+            lastTestedAt: new Date('2025-01-19T09:15:00Z')
+        },
+        {
+            id: 3,
+            name: 'Credit Card Skimming Attack',
+            description: 'Fraudulent transactions following physical card compromise',
+            userStory: 'Multiple small transactions are made using a compromised credit card at various ATMs and gas stations within a short time frame, indicating possible skimming device usage.',
+            conditions: 'Multiple transactions < $100 AND Different locations AND Time span < 2 hours',
+            riskLevel: 'high',
+            category: 'payment',
+            businessType: 'Payment Processing',
+            tags: 'card-fraud, skimming, atm',
+            priority: 4,
+            status: 'active',
+            generatedAt: new Date('2025-01-16T08:20:00Z'),
+            generatedBy: 'System',
+            isTested: false,
+            isFavorite: true,
+            testCount: 0
+        },
+        {
+            id: 4,
+            name: 'Phishing Email Campaign',
+            description: 'Coordinated phishing attack targeting customer credentials',
+            userStory: 'Customers receive convincing emails appearing to be from their bank, requesting them to verify account information through a fake login portal.',
+            conditions: 'Email domain similarity > 90% AND Login attempts from suspicious IPs AND Multiple customers affected',
+            riskLevel: 'medium',
+            category: 'cybersecurity',
+            businessType: 'Banking',
+            tags: 'phishing, email, credentials',
+            priority: 3,
+            status: 'draft',
+            generatedAt: new Date('2025-01-20T11:10:00Z'),
+            generatedBy: 'User',
+            isTested: false,
+            isFavorite: false,
+            testCount: 0
+        },
+        {
+            id: 5,
+            name: 'High-Value Transaction Anomaly',
+            description: 'Unusually large transaction that deviates from customer profile',
+            userStory: 'A customer with a typical monthly spending of $2,000 suddenly makes a $25,000 purchase online using their credit card.',
+            conditions: 'Transaction amount > 10x average monthly spend AND Online purchase AND New merchant',
+            riskLevel: 'high',
+            category: 'high_value',
+            businessType: 'E-commerce',
+            tags: 'high-value, anomaly, online',
+            priority: 4,
+            status: 'active',
+            generatedAt: new Date('2025-01-17T16:22:00Z'),
+            generatedBy: 'System',
+            isTested: true,
+            isFavorite: false,
+            testCount: 2,
+            lastTestedAt: new Date('2025-01-18T10:45:00Z')
+        },
+        {
+            id: 6,
+            name: 'Utility Bill Overpayment Fraud',
+            description: 'Fraudulent overpayment of utility bills to generate credit balances',
+            userStory: 'A customer makes multiple large overpayments to utility companies and then requests refunds to different bank accounts.',
+            conditions: 'Payment amount > 5x average utility bill AND Multiple utility companies AND Refund to different account',
+            riskLevel: 'medium',
+            category: 'utility_payment',
+            businessType: 'Utility Services',
+            tags: 'overpayment, utility, refund-fraud',
+            priority: 2,
+            status: 'active',
+            generatedAt: new Date('2025-01-19T13:55:00Z'),
+            generatedBy: 'User',
+            isTested: false,
+            isFavorite: true,
+            testCount: 0
+        }
+    ];
+}
+
+async function loadScenarios() {
+    try {
+        $('#loadingIndicator').show();
+        
+        // Try to load from API first
+        try {
+            const response = await fetch('/api/betascenario');
+            if (response.ok) {
+                scenarios = await response.json();
+            } else {
+                throw new Error('API not available');
+            }
+        } catch (apiError) {
+            console.warn('API not available, using mock data:', apiError.message);
+            // Use mock data for offline functionality
+            scenarios = createMockScenarios();
+            showInfo('Working offline with sample scenarios');
+        }
+        
+        filteredScenarios = [...scenarios];
+        displayScenarios();
+        
+    } catch (error) {
+        console.error('Error loading scenarios:', error);
+        showError('Error loading scenarios: ' + error.message);
+        // Fallback to empty state
+        scenarios = [];
+        filteredScenarios = [];
+        displayScenarios();
+    } finally {
+        $('#loadingIndicator').hide();
+    }
+}
+
+async function loadStatistics() {
+    try {
+        // Calculate statistics from current scenarios array
+        $('#totalScenarios').text(scenarios.length || 0);
+        $('#testedScenarios').text(scenarios.filter(s => s.isTested === true).length || 0);
+        $('#highRiskScenarios').text(scenarios.filter(s => s.riskLevel === 'high').length || 0);
+        $('#favoriteScenarios').text(scenarios.filter(s => s.isFavorite === true).length || 0);
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+        // Set default values
+        $('#totalScenarios').text('0');
+        $('#testedScenarios').text('0');
+        $('#highRiskScenarios').text('0');
+        $('#favoriteScenarios').text('0');
+    }
+}
+
+function displayScenarios() {
+    const container = $('#scenariosContainer');
+    container.empty();
+
+    if (filteredScenarios.length === 0) {
+        container.html(`
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No scenarios found</h5>
+                <p class="text-muted">Try adjusting your search criteria or create a new scenario.</p>
+            </div>
+        `);
+        return;
+    }
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedScenarios = filteredScenarios.slice(startIndex, endIndex);
+
+    const scenariosHtml = paginatedScenarios.map(scenario => createScenarioCard(scenario)).join('');
+    container.html(scenariosHtml);
+
+    updatePagination();
+}
+
+function createScenarioCard(scenario) {
+    const riskBadgeClass = {
+        'low': 'bg-success',
+        'medium': 'bg-warning',
+        'high': 'bg-danger'
+    }[scenario.riskLevel] || 'bg-secondary';
+
+    const statusBadgeClass = {
+        'draft': 'bg-secondary',
+        'active': 'bg-primary',
+        'tested': 'bg-success',
+        'archived': 'bg-dark'
+    }[scenario.status] || 'bg-secondary';
+
+    return `
+        <div class="card mb-3 scenario-card" data-id="${scenario.id}">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-start mb-2">
+                            <h5 class="card-title mb-0 me-2">${scenario.name}</h5>
+                            <div class="badges">
+                                <span class="badge ${riskBadgeClass} me-1">${scenario.riskLevel}</span>
+                                <span class="badge ${statusBadgeClass} me-1">${scenario.status || 'draft'}</span>
+                                ${scenario.isFavorite ? '<i class="fas fa-heart text-danger"></i>' : ''}
+                            </div>
+                        </div>
+                        <p class="card-text text-muted small mb-2">${scenario.description || 'No description available'}</p>
+                        <div class="text-muted small">
+                            <span><i class="fas fa-folder me-1"></i>${scenario.category}</span>
+                            ${scenario.businessType ? `<span class="ms-3"><i class="fas fa-building me-1"></i>${scenario.businessType}</span>` : ''}
+                            <span class="ms-3"><i class="fas fa-calendar me-1"></i>${new Date(scenario.generatedAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewScenario(${scenario.id})" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="testScenario(${scenario.id})" title="Test Scenario">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="toggleFavorite(${scenario.id})" title="Toggle Favorite">
+                                <i class="fas fa-heart${scenario.isFavorite ? '' : '-o'}"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="duplicateScenario(${scenario.id})" title="Duplicate">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        ${scenario.lastTestedAt ? `<div class="small text-muted mt-2">Last tested: ${new Date(scenario.lastTestedAt).toLocaleDateString()}</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function createScenario() {
+    const formData = {
+        name: $('#scenarioName').val(),
+        description: $('#scenarioDescription').val(),
+        userStory: $('#userStory').val(),
+        conditions: $('#scenarioConditions').val(),
+        riskLevel: $('#scenarioRiskLevel').val(),
+        category: $('#scenarioCategory').val(),
+        businessType: $('#scenarioBusinessType').val(),
+        tags: $('#scenarioTags').val(),
+        priority: parseInt($('#scenarioPriority').val()),
+        useDatabaseData: $('#useDatabaseData').is(':checked'),
+        autoGenerateWatchlists: $('#autoGenerateWatchlists').is(':checked'),
+        generatedBy: 'User'
+    };
+
+    if (!formData.name || !formData.userStory || !formData.riskLevel || !formData.category) {
+        showError('Please fill in all required fields');
+        return;
+    }
+
+    try {
+        // Try API first
+        try {
+            const response = await fetch('/api/betascenario/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                showSuccess('Scenario created successfully!');
+                $('#createScenarioModal').modal('hide');
+                $('#scenarioForm')[0].reset();
+                loadScenarios();
+                loadStatistics();
+                return;
+            } else {
+                throw new Error('API not available');
+            }
+        } catch (apiError) {
+            // Offline mode: Add scenario locally
+            const newScenario = {
+                id: Math.max(...scenarios.map(s => s.id)) + 1,
+                name: formData.name,
+                description: formData.description,
+                userStory: formData.userStory,
+                conditions: formData.conditions,
+                riskLevel: formData.riskLevel,
+                category: formData.category,
+                businessType: formData.businessType,
+                tags: formData.tags,
+                priority: formData.priority,
+                status: 'draft',
+                generatedAt: new Date(),
+                generatedBy: formData.generatedBy,
+                isTested: false,
+                isFavorite: false,
+                testCount: 0
+            };
+            
+            scenarios.push(newScenario);
+            filteredScenarios = [...scenarios];
+            
+            showSuccess('Scenario created successfully (offline mode)!');
+            $('#createScenarioModal').modal('hide');
+            $('#scenarioForm')[0].reset();
+            displayScenarios();
+            loadStatistics();
+        }
+    } catch (error) {
+        showError('Error creating scenario: ' + error.message);
+    }
+}
+
+async function viewScenario(id) {
+    try {
+        // Try API first
+        try {
+            const response = await fetch(`/api/betascenario/${id}`);
+            if (response.ok) {
+                const scenario = await response.json();
+                currentScenarioId = id;
+                displayScenarioDetails(scenario);
+                $('#scenarioDetailsModal').modal('show');
+                return;
+            } else {
+                throw new Error('API not available');
+            }
+        } catch (apiError) {
+            // Offline mode: Use local data
+            const scenario = scenarios.find(s => s.id === id);
+            if (scenario) {
+                currentScenarioId = id;
+                displayScenarioDetails(scenario);
+                $('#scenarioDetailsModal').modal('show');
+            } else {
+                showError('Scenario not found');
+            }
+        }
+    } catch (error) {
+        showError('Error loading scenario: ' + error.message);
+    }
+}
+
+function displayScenarioDetails(scenario) {
+    $('#scenarioDetailsTitle').text(scenario.name);
+    $('#scenarioDetailsBody').html(`
+        <div class="row g-4">
+            <div class="col-md-6">
+                <h6>Basic Information</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Name:</strong></td><td>${scenario.name}</td></tr>
+                    <tr><td><strong>Category:</strong></td><td>${scenario.category}</td></tr>
+                    <tr><td><strong>Risk Level:</strong></td><td><span class="badge bg-${scenario.riskLevel === 'high' ? 'danger' : scenario.riskLevel === 'medium' ? 'warning' : 'success'}">${scenario.riskLevel}</span></td></tr>
+                    <tr><td><strong>Priority:</strong></td><td>${scenario.priority || 'N/A'}</td></tr>
+                    <tr><td><strong>Status:</strong></td><td>${scenario.status || 'Draft'}</td></tr>
+                    <tr><td><strong>Business Type:</strong></td><td>${scenario.businessType || 'N/A'}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Scenario Details</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Generated:</strong></td><td>${new Date(scenario.generatedAt).toLocaleString()}</td></tr>
+                    <tr><td><strong>Generated By:</strong></td><td>${scenario.generatedBy || 'System'}</td></tr>
+                    <tr><td><strong>Is Tested:</strong></td><td>${scenario.isTested ? 'Yes' : 'No'}</td></tr>
+                    <tr><td><strong>Is Favorite:</strong></td><td>${scenario.isFavorite ? 'Yes' : 'No'}</td></tr>
+                    <tr><td><strong>Test Count:</strong></td><td>${scenario.testCount || 0}</td></tr>
+                    <tr><td><strong>Last Tested:</strong></td><td>${scenario.lastTestedAt ? new Date(scenario.lastTestedAt).toLocaleString() : 'Never'}</td></tr>
+                </table>
+            </div>
+            <div class="col-12">
+                <h6>Description</h6>
+                <p class="border p-3 bg-light rounded">${scenario.description || 'No description available'}</p>
+            </div>
+            <div class="col-12">
+                <h6>User Story</h6>
+                <p class="border p-3 bg-light rounded">${scenario.userStory || 'No user story available'}</p>
+            </div>
+            ${scenario.conditions ? `
+            <div class="col-12">
+                <h6>Conditions & Triggers</h6>
+                <p class="border p-3 bg-light rounded">${scenario.conditions}</p>
+            </div>
+            ` : ''}
+            ${scenario.generatedStory ? `
+            <div class="col-12">
+                <h6>Generated Story</h6>
+                <div class="border p-3 bg-light rounded" style="white-space: pre-wrap;">${scenario.generatedStory}</div>
+            </div>
+            ` : ''}
+            ${scenario.tags ? `
+            <div class="col-12">
+                <h6>Tags</h6>
+                <div>${scenario.tags.split(',').map(tag => `<span class="badge bg-secondary me-1">${tag.trim()}</span>`).join('')}</div>
+            </div>
+            ` : ''}
+        </div>
+    `);
+}
+
+function filterScenarios() {
+    const searchTerm = $('#searchInput').val().toLowerCase();
+    const riskLevel = $('#riskLevelFilter').val();
+    const category = $('#categoryFilter').val();
+    const status = $('#statusFilter').val();
+    const favoritesOnly = $('#favoritesOnly').is(':checked');
+
+    filteredScenarios = scenarios.filter(scenario => {
+        const matchesSearch = !searchTerm || 
+            scenario.name.toLowerCase().includes(searchTerm) ||
+            (scenario.description && scenario.description.toLowerCase().includes(searchTerm));
+        
+        const matchesRiskLevel = !riskLevel || scenario.riskLevel === riskLevel;
+        const matchesCategory = !category || scenario.category === category;
+        const matchesStatus = !status || (scenario.status || 'draft') === status;
+        const matchesFavorites = !favoritesOnly || scenario.isFavorite;
+
+        return matchesSearch && matchesRiskLevel && matchesCategory && matchesStatus && matchesFavorites;
+    });
+
+    currentPage = 1;
+    displayScenarios();
+}
+
+function clearFilters() {
+    $('#searchInput').val('');
+    $('#riskLevelFilter').val('');
+    $('#categoryFilter').val('');
+    $('#statusFilter').val('');
+    $('#favoritesOnly').prop('checked', false);
+    filterScenarios();
+}
+
+function refreshScenarios() {
+    loadScenarios();
+    loadStatistics();
+}
+
+async function bulkGenerate() {
+    // This would open a bulk generation dialog
+    showInfo('Bulk generation feature coming soon!');
+}
+
+async function testScenario(id) {
+    try {
+        const response = await fetch(`/api/betascenario/${id}/test`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            showSuccess('Scenario test initiated successfully!');
+            // Refresh the scenario data to show updated test status
+            await loadScenarios();
+        } else {
+            showError('Failed to test scenario');
+        }
+    } catch (error) {
+        showInfo('Scenario testing feature - API endpoint not yet implemented');
+    }
+}
+
+function editScenario(id) {
+    const scenario = scenarios.find(s => s.id === id);
+    if (scenario) {
+        // Populate edit form with scenario data
+        $('#editScenarioId').val(scenario.id);
+        $('#editScenarioName').val(scenario.name);
+        $('#editScenarioDescription').val(scenario.description);
+        $('#editUserStory').val(scenario.userStory);
+        $('#editScenarioConditions').val(scenario.conditions);
+        $('#editScenarioRiskLevel').val(scenario.riskLevel);
+        $('#editScenarioCategory').val(scenario.category);
+        $('#editScenarioBusinessType').val(scenario.businessType || '');
+        $('#editScenarioTags').val(scenario.tags || '');
+        $('#editScenarioPriority').val(scenario.priority || 2);
+        $('#editScenarioStatus').val(scenario.status || 'draft');
+        
+        // Show edit modal
+        $('#editScenarioModal').modal('show');
+    }
+}
+
+async function updateScenario() {
+    const scenarioId = parseInt($('#editScenarioId').val());
+    const formData = {
+        id: scenarioId,
+        name: $('#editScenarioName').val(),
+        description: $('#editScenarioDescription').val(),
+        userStory: $('#editUserStory').val(),
+        conditions: $('#editScenarioConditions').val(),
+        riskLevel: $('#editScenarioRiskLevel').val(),
+        category: $('#editScenarioCategory').val(),
+        businessType: $('#editScenarioBusinessType').val(),
+        tags: $('#editScenarioTags').val(),
+        priority: parseInt($('#editScenarioPriority').val()),
+        status: $('#editScenarioStatus').val()
+    };
+
+    if (!formData.name || !formData.userStory || !formData.riskLevel || !formData.category) {
+        showError('Please fill in all required fields');
+        return;
+    }
+
+    try {
+        // Try API first
+        try {
+            const response = await fetch(`/api/betascenario/${scenarioId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                showSuccess('Scenario updated successfully!');
+                $('#editScenarioModal').modal('hide');
+                await loadScenarios();
+                await loadStatistics();
+                return;
+            } else {
+                throw new Error('API not available');
+            }
+        } catch (apiError) {
+            // Offline mode: Update local data
+            const scenarioIndex = scenarios.findIndex(s => s.id === scenarioId);
+            if (scenarioIndex !== -1) {
+                // Update the scenario with new data
+                scenarios[scenarioIndex] = {
+                    ...scenarios[scenarioIndex],
+                    ...formData
+                };
+                
+                filteredScenarios = [...scenarios];
+                
+                showSuccess('Scenario updated successfully (offline mode)!');
+                $('#editScenarioModal').modal('hide');
+                displayScenarios();
+                loadStatistics();
+            } else {
+                showError('Scenario not found');
+            }
+        }
+    } catch (error) {
+        showError('Error updating scenario: ' + error.message);
+    }
+}
+
+async function toggleFavorite(id) {
+    try {
+        const scenario = scenarios.find(s => s.id === id);
+        if (!scenario) {
+            showError('Scenario not found');
+            return;
+        }
+
+        try {
+            // Try API first
+            const response = await fetch(`/api/betascenario/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isFavorite: !scenario.isFavorite })
+            });
+
+            if (response.ok) {
+                scenario.isFavorite = !scenario.isFavorite;
+                displayScenarios();
+                loadStatistics();
+                return;
+            } else {
+                throw new Error('API not available');
+            }
+        } catch (apiError) {
+            // Offline mode: Update locally
+            scenario.isFavorite = !scenario.isFavorite;
+            
+            // Also update in filteredScenarios if it exists there
+            const filteredScenario = filteredScenarios.find(s => s.id === id);
+            if (filteredScenario) {
+                filteredScenario.isFavorite = scenario.isFavorite;
+            }
+            
+            displayScenarios();
+            loadStatistics();
+            
+            showInfo('Favorite status updated (offline mode)');
+        }
+    } catch (error) {
+        showError('Error updating favorite: ' + error.message);
+    }
+}
+
+function duplicateScenario(id) {
+    const scenario = scenarios.find(s => s.id === id);
+    if (scenario) {
+        $('#scenarioName').val(scenario.name + ' (Copy)');
+        $('#scenarioDescription').val(scenario.description);
+        $('#userStory').val(scenario.userStory);
+        $('#scenarioConditions').val(scenario.conditions);
+        $('#scenarioRiskLevel').val(scenario.riskLevel);
+        $('#scenarioCategory').val(scenario.category);
+        $('#scenarioBusinessType').val(scenario.businessType);
+        $('#scenarioTags').val(scenario.tags);
+        $('#scenarioPriority').val(scenario.priority || 2);
+        $('#createScenarioModal').modal('show');
+    }
+}
+
+function updatePagination() {
+    const totalPages = Math.ceil(filteredScenarios.length / pageSize);
+    const pagination = $('#pagination');
+    pagination.empty();
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    pagination.append(`
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a>
+        </li>
+    `);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            pagination.append(`
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                </li>
+            `);
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            pagination.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+    }
+
+    // Next button
+    pagination.append(`
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a>
+        </li>
+    `);
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(filteredScenarios.length / pageSize);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        displayScenarios();
+    }
+}
+
+// Utility functions
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function showSuccess(message) {
+    showToast(message, 'success');
+}
+
+function showError(message) {
+    showToast(message, 'error');
+}
+
+function showInfo(message) {
+    showToast(message, 'info');
+}
+
+function showToast(message, type = 'info') {
+    const toast = $(`
+        <div class="alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 250px;">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `);
+    
+    $('body').append(toast);
+    
+    setTimeout(() => {
+        toast.alert('close');
+    }, 5000);
+}
+</script>
+}
+
+<style>
+.scenario-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.scenario-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.badges {
+    white-space: nowrap;
+}
+
+.card-body .btn-group {
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.scenario-card:hover .btn-group {
+    opacity: 1;
+}
+</style>
