@@ -732,6 +732,20 @@ Transaction Details:
                 scenarioObject,
                 new JsonSerializerOptions { WriteIndented = true });
 
+            // Try to get the first available configuration ID, or leave null if none exists
+            int? configurationId = null;
+            try
+            {
+                var firstConfig = _context.ApiConfigurations
+                    .Where(c => !c.IsDeleted && c.IsActive)
+                    .FirstOrDefault();
+                configurationId = firstConfig?.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch API configuration for scenario generation");
+            }
+
             return new GeneratedScenario
             {
                 Name = $"{(profile?.Split(' ')?.FirstOrDefault() ?? "Unknown")} - {activityCode}",
@@ -772,7 +786,7 @@ Transaction Details:
                 WatchlistToName = watchlist.ToName == "Yes",
                 WatchlistToBank = watchlist.ToBank == "Yes",
                 WatchlistIPAddress = watchlist.IpAddress == "Yes",
-                ConfigurationId = 1 // Default to first configuration for now
+                ConfigurationId = configurationId // Use nullable configuration ID
             };
         }
 

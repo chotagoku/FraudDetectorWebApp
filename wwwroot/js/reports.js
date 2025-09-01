@@ -1397,9 +1397,11 @@ async function viewResultDetails(resultId) {
 // Show toast notification
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
-    toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+    const alertType = type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info';
+    toast.className = 'alert alert-' + alertType + ' position-fixed';
     toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 250px;';
-    toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-1"></i>${message}`;
+    const iconClass = type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle';
+    toast.innerHTML = '<i class="fas fa-' + iconClass + ' me-1"></i>' + message;
     document.body.appendChild(toast);
     
     setTimeout(() => {

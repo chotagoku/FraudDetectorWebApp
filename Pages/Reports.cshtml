@@ -20,6 +20,85 @@
     </div>
 </div>
 
+<!-- Live Data Dashboard (shown when service is running) -->
+<div class="card border-success mb-4" id="liveDataCard" style="display: none;">
+    <div class="card-header bg-success text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-broadcast-tower me-2"></i>Live Data Feed
+                <span class="badge bg-light text-success ms-2" id="liveDataStatus">Connected</span>
+            </h5>
+            <div class="d-flex align-items-center">
+                <small class="me-3" id="lastUpdate">Last update: --</small>
+                <button class="btn btn-sm btn-outline-light" onclick="toggleLiveData()" id="liveToggleBtn">
+                    <i class="fas fa-pause me-1"></i> Pause
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary rounded p-2 me-3">
+                        <i class="fas fa-clock text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0" id="liveRequestsPerHour">0</h6>
+                        <small class="text-muted">Requests/Hour</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-success rounded p-2 me-3">
+                        <i class="fas fa-check text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0" id="liveSuccessRate">0%</h6>
+                        <small class="text-muted">Success Rate (24h)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-warning rounded p-2 me-3">
+                        <i class="fas fa-tachometer-alt text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0" id="liveAvgResponse">0ms</h6>
+                        <small class="text-muted">Avg Response Time</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-info rounded p-2 me-3">
+                        <i class="fas fa-memory text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0" id="systemMemory">0 MB</h6>
+                        <small class="text-muted">Memory Usage</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity Stream -->
+        <div class="mt-3">
+            <h6 class="border-bottom pb-2 mb-3">
+                <i class="fas fa-stream me-2"></i>Recent Activity
+                <span class="badge bg-secondary ms-2" id="activityCount">0</span>
+            </h6>
+            <div id="recentActivity" class="" style="max-height: 200px; overflow-y: auto;">
+                <div class="text-center text-muted py-3">
+                    <small>No recent activity</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Summary Dashboard -->
 <div class="row mb-4">
     <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
@@ -159,7 +238,7 @@
                         <h6 class="mb-0">
                             <i class="fas fa-check-circle text-success me-2"></i>API Success Rate
                         </h6>
-                        <div class="badge bg-light text-dark" id="successRateMetric">0%</div>
+                        <div class="badge bg-primary text-white" id="successRateMetric">0%</div>
                     </div>
                     <canvas id="successRateChart" width="400" height="250"></canvas>
                 </div>
@@ -172,7 +251,7 @@
                         <h6 class="mb-0">
                             <i class="fas fa-clock text-warning me-2"></i>Response Time Analysis
                         </h6>
-                        <div class="badge bg-light text-dark" id="avgResponseMetric">0ms</div>
+                        <div class="badge bg-warning text-dark" id="avgResponseMetric">0ms</div>
                     </div>
                     <canvas id="responseTimeChart" width="400" height="250"></canvas>
                 </div>
@@ -188,7 +267,7 @@
                         <h6 class="mb-0">
                             <i class="fas fa-shield-alt text-danger me-2"></i>Risk Level Distribution
                         </h6>
-                        <div class="badge bg-light text-dark" id="riskMetric">0 scenarios</div>
+                        <div class="badge bg-info text-white" id="riskMetric">0 scenarios</div>
                     </div>
                     <canvas id="riskLevelChart" width="400" height="250"></canvas>
                 </div>
@@ -201,7 +280,7 @@
                         <h6 class="mb-0">
                             <i class="fas fa-chart-line text-primary me-2"></i>Performance Timeline (24h)
                         </h6>
-                        <div class="badge bg-light text-dark" id="timelineMetric">0 requests</div>
+                        <div class="badge bg-secondary text-white" id="timelineMetric">0 requests</div>
                     </div>
                     <canvas id="performanceTimelineChart" width="400" height="250"></canvas>
                 </div>
@@ -217,7 +296,7 @@
                         <h6 class="mb-0">
                             <i class="fas fa-cogs text-info me-2"></i>Configuration Performance
                         </h6>
-                        <div class="badge bg-light text-dark" id="configMetric">0 configs</div>
+                        <div class="badge bg-info text-white" id="configMetric">0 configs</div>
                     </div>
                     <canvas id="configPerformanceChart" width="400" height="250"></canvas>
                 </div>
@@ -230,7 +309,7 @@
                         <h6 class="mb-0">
                             <i class="fas fa-exclamation-circle text-warning me-2"></i>Error Rate Trends
                         </h6>
-                        <div class="badge bg-light text-dark" id="errorMetric">0% errors</div>
+                        <div class="badge bg-warning text-dark" id="errorMetric">0% errors</div>
                     </div>
                     <canvas id="errorTrendsChart" width="400" height="250"></canvas>
                 </div>
@@ -435,6 +514,36 @@
         background: #f8f9fa;
         border-radius: 8px;
         border: 1px solid #dee2e6;
+        color: #212529 !important; /* Ensure dark text on light background */
+    }
+    
+    /* Ensure all text in chart containers is readable */
+    .chart-container h6,
+    .chart-container .badge,
+    .chart-container * {
+        color: inherit !important;
+    }
+    
+    /* Fix any white text issues */
+    .text-white {
+        color: #ffffff !important;
+    }
+    
+    /* Ensure proper contrast for badges */
+    .badge.bg-light {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    
+    /* Ensure card headers have proper text color */
+    .card-header {
+        color: #212529 !important;
+    }
+    
+    .card-header h5,
+    .card-header .card-title {
+        color: #212529 !important;
     }
     .chart-container canvas {
         max-height: 300px;
@@ -1502,14 +1611,202 @@
     // Show toast notification
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
-        toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+        toast.className = 'alert alert-' + (type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info') + ' position-fixed';
         toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 250px;';
-        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-1"></i>${message}`;
+        const iconClass = type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle';
+        toast.innerHTML = '<i class="fas fa-' + iconClass + ' me-1"></i>' + message;
         document.body.appendChild(toast);
         
         setTimeout(() => {
             toast.remove();
         }, 4000);
     }
+
+    // ===== LIVE DATA FUNCTIONALITY =====
+    let liveDataConnection;
+    let liveDataEnabled = false;
+    
+    // Initialize live data connection
+    async function initializeLiveData() {
+        try {
+            // Import SignalR from CDN
+            if (typeof signalR === 'undefined') {
+                await loadSignalRLibrary();
+            }
+            
+            liveDataConnection = new signalR.HubConnectionBuilder()
+                .withUrl('/hubs/apitest')
+                .withAutomaticReconnect()
+                .build();
+                
+            // Listen for live data updates
+            liveDataConnection.on('LiveDataUpdate', handleLiveDataUpdate);
+            
+            // Handle connection events
+            liveDataConnection.onclose(function () {
+                updateLiveDataStatus('Disconnected', 'danger');
+                console.log('Live data connection closed');
+            });
+            
+            liveDataConnection.onreconnecting(function () {
+                updateLiveDataStatus('Reconnecting...', 'warning');
+                console.log('Live data connection reconnecting');
+            });
+            
+            liveDataConnection.onreconnected(function () {
+                updateLiveDataStatus('Connected', 'success');
+                console.log('Live data connection restored');
+            });
+            
+            // Start the connection
+            await liveDataConnection.start();
+            liveDataEnabled = true;
+            updateLiveDataStatus('Connected', 'success');
+            showLiveDataCard();
+            
+            console.log('Live data connection established');
+            
+        } catch (error) {
+            console.error('Failed to initialize live data connection:', error);
+            updateLiveDataStatus('Error', 'danger');
+        }
+    }
+    
+    // Load SignalR library dynamically
+    function loadSignalRLibrary() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@microsoft/signalr@latest/dist/browser/signalr.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+    
+    // Handle live data updates from SignalR
+    function handleLiveDataUpdate(data) {
+        if (!liveDataEnabled) return;
+        
+        try {
+            const stats = data.statistics;
+            const systemStatus = data.systemStatus;
+            
+            // Update live metrics
+            updateLiveMetrics(stats, systemStatus);
+            
+            // Update recent activity
+            updateRecentActivity(stats.recentActivity);
+            
+            // Update last update timestamp
+            document.getElementById('lastUpdate').textContent = 
+                'Last update: ' + new Date(data.timestamp).toLocaleTimeString();
+            
+        } catch (error) {
+            console.error('Error processing live data update:', error);
+        }
+    }
+    
+    // Update live metrics display
+    function updateLiveMetrics(stats, systemStatus) {
+        const overview = stats.overview;
+        
+        // Requests per hour
+        document.getElementById('liveRequestsPerHour').textContent = 
+            overview.lastHourRequests || 0;
+        
+        // Success rate (last 24 hours)
+        const successRate24h = stats.trends?.successRateLast24h || overview.successRate || 0;
+        document.getElementById('liveSuccessRate').textContent = 
+            Math.round(successRate24h) + '%';
+        
+        // Average response time
+        document.getElementById('liveAvgResponse').textContent = 
+            Math.round(overview.avgResponseTime || 0) + 'ms';
+        
+        // System memory usage (convert bytes to MB)
+        const memoryMB = systemStatus?.memoryUsage ? 
+            Math.round(systemStatus.memoryUsage / 1024 / 1024) : 0;
+        document.getElementById('systemMemory').textContent = memoryMB + ' MB';
+    }
+    
+    // Update recent activity stream
+    function updateRecentActivity(activities) {
+        const container = document.getElementById('recentActivity');
+        const countElement = document.getElementById('activityCount');
+        
+        if (!activities || activities.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted py-3"><small>No recent activity</small></div>';
+            countElement.textContent = '0';
+            return;
+        }
+        
+        countElement.textContent = activities.length.toString();
+        
+        const html = activities.map(activity => {
+            const time = new Date(activity.requestTimestamp).toLocaleTimeString();
+            const statusClass = activity.isSuccessful ? 'success' : 'danger';
+            const statusIcon = activity.isSuccessful ? 'check' : 'times';
+            
+            return `
+                <div class="d-flex align-items-center py-2 border-bottom border-light">
+                    <div class="me-3">
+                        <i class="fas fa-${statusIcon} text-${statusClass}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="fw-medium">${activity.configurationName || 'API Test'}</small>
+                            <small class="text-muted">${time}</small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Status: ${activity.statusCode}</small>
+                            <small class="text-muted">${activity.responseTimeMs}ms</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = html;
+    }
+    
+    // Show/hide live data card
+    function showLiveDataCard() {
+        document.getElementById('liveDataCard').style.display = 'block';
+    }
+    
+    function hideLiveDataCard() {
+        document.getElementById('liveDataCard').style.display = 'none';
+    }
+    
+    // Update live data connection status
+    function updateLiveDataStatus(status, type) {
+        const statusElement = document.getElementById('liveDataStatus');
+        statusElement.textContent = status;
+        statusElement.className = `badge bg-${type === 'success' ? 'light' : type} text-${type === 'success' ? 'success' : 'white'} ms-2`;
+    }
+    
+    // Toggle live data on/off
+    function toggleLiveData() {
+        liveDataEnabled = !liveDataEnabled;
+        const btn = document.getElementById('liveToggleBtn');
+        
+        if (liveDataEnabled) {
+            btn.innerHTML = '<i class="fas fa-pause me-1"></i> Pause';
+            btn.className = 'btn btn-sm btn-outline-light';
+            updateLiveDataStatus('Connected', 'success');
+        } else {
+            btn.innerHTML = '<i class="fas fa-play me-1"></i> Resume';
+            btn.className = 'btn btn-sm btn-light';
+            updateLiveDataStatus('Paused', 'warning');
+        }
+    }
+    
+    // Initialize live data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Try to initialize live data connection
+        setTimeout(() => {
+            initializeLiveData();
+        }, 2000); // Wait 2 seconds to ensure other scripts are loaded
+    });
 </script>
 }

@@ -142,6 +142,17 @@ body {
     border: 1px solid rgba(99, 102, 241, 0.1);
     border-radius: var(--border-radius-md);
     padding: 15px;
+    color: #212529 !important; /* Ensure dark text for readability */
+}
+
+.control-panel * {
+    color: #212529 !important;
+}
+
+.control-panel .form-label,
+.control-panel label {
+    color: #212529 !important;
+    font-weight: 600;
 }
 
 @media (min-width: 768px) {

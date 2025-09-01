@@ -1,0 +1,156 @@
+@page "/dropdown-test"
+@{
+    ViewData["Title"] = "Dropdown Test";
+}
+
+<div class="container mt-4">
+    <h1>Dropdown Functionality Test</h1>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Test 1: Basic Bootstrap Dropdown</h3>
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Dropdown button
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Action</a></li>
+                    <li><a class="dropdown-item" href="#">Another action</a></li>
+                    <li><a class="dropdown-item" href="#">Something else here</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <h3>Test 2: User Menu Style Dropdown</h3>
+            <div class="nav-item dropdown">
+                <button class="btn btn-outline-primary btn-sm dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-user-circle me-2"></i>
+                    Test User
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><h6 class="dropdown-header">
+                        <i class="fas fa-user me-2"></i>Test User
+                    </h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="alert('Profile clicked')">
+                        <i class="fas fa-user-edit me-2"></i>Profile Settings
+                    </a></li>
+                    <li><a class="dropdown-item" href="#">
+                        <i class="fas fa-cog me-2"></i>Preferences
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="alert('Logout clicked')">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Debug Information</h3>
+            <button class="btn btn-info" onclick="debugDropdowns()">Debug Dropdowns</button>
+            <button class="btn btn-warning" onclick="testDropdown()">Test First Dropdown</button>
+            <button class="btn btn-success" onclick="checkBootstrap()">Check Bootstrap</button>
+            
+            <div id="debug-output" class="mt-3 p-3 bg-light border rounded" style="max-height: 400px; overflow-y: auto;">
+                Debug output will appear here...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function debugDropdowns() {
+    const output = document.getElementById('debug-output');
+    output.innerHTML = '<strong>Dropdown Debug Information:</strong><br>';
+    
+    // Check Bootstrap availability
+    output.innerHTML += `Bootstrap available: ${typeof bootstrap !== 'undefined'}<br>`;
+    if (typeof bootstrap !== 'undefined') {
+        output.innerHTML += `Bootstrap version: ${bootstrap.Tooltip?.VERSION || 'Unknown'}<br>`;
+        output.innerHTML += `Bootstrap.Dropdown: ${typeof bootstrap.Dropdown}<br>`;
+    }
+    
+    // Check jQuery
+    output.innerHTML += `jQuery available: ${typeof $ !== 'undefined'}<br>`;
+    
+    // Find dropdowns
+    const dropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+    output.innerHTML += `Found ${dropdowns.length} dropdown toggles:<br>`;
+    
+    dropdowns.forEach((dropdown, index) => {
+        output.innerHTML += `  Dropdown ${index + 1}: ${dropdown.textContent.trim()}<br>`;
+        output.innerHTML += `    Classes: ${dropdown.className}<br>`;
+        output.innerHTML += `    Aria-expanded: ${dropdown.getAttribute('aria-expanded')}<br>`;
+        
+        // Try to get Bootstrap instance
+        try {
+            const instance = bootstrap.Dropdown.getInstance(dropdown);
+            output.innerHTML += `    Bootstrap instance: ${instance ? 'Found' : 'None'}<br>`;
+        } catch (error) {
+            output.innerHTML += `    Bootstrap instance error: ${error.message}<br>`;
+        }
+    });
+    
+    // Check dropdown menus
+    const menus = document.querySelectorAll('.dropdown-menu');
+    output.innerHTML += `Found ${menus.length} dropdown menus<br>`;
+}
+
+function testDropdown() {
+    const output = document.getElementById('debug-output');
+    const firstDropdown = document.querySelector('[data-bs-toggle="dropdown"]');
+    
+    if (firstDropdown) {
+        output.innerHTML += '<strong>Testing first dropdown...</strong><br>';
+        
+        try {
+            // Try Bootstrap method
+            const instance = bootstrap.Dropdown.getOrCreateInstance(firstDropdown);
+            instance.toggle();
+            output.innerHTML += 'Bootstrap toggle successful<br>';
+        } catch (error) {
+            output.innerHTML += `Bootstrap toggle failed: ${error.message}<br>`;
+            
+            // Try manual toggle
+            try {
+                const menu = firstDropdown.nextElementSibling;
+                if (menu && menu.classList.contains('dropdown-menu')) {
+                    menu.classList.toggle('show');
+                    firstDropdown.setAttribute('aria-expanded', menu.classList.contains('show'));
+                    output.innerHTML += 'Manual toggle successful<br>';
+                }
+            } catch (manualError) {
+                output.innerHTML += `Manual toggle failed: ${manualError.message}<br>`;
+            }
+        }
+    } else {
+        output.innerHTML += 'No dropdown found to test<br>';
+    }
+}
+
+// Override the global checkBootstrap function for this page
+function checkBootstrap() {
+    const output = document.getElementById('debug-output');
+    output.innerHTML = '<strong>Bootstrap Status Check:</strong><br>';
+    output.innerHTML += `Bootstrap object: ${typeof bootstrap !== 'undefined' ? 'Available' : 'Not available'}<br>`;
+    
+    if (typeof bootstrap !== 'undefined') {
+        output.innerHTML += `Available components: ${Object.keys(bootstrap).join(', ')}<br>`;
+        
+        // Test creating a dropdown
+        const testDropdown = document.querySelector('[data-bs-toggle="dropdown"]');
+        if (testDropdown) {
+            try {
+                const dropdown = new bootstrap.Dropdown(testDropdown);
+                output.innerHTML += 'Successfully created Bootstrap dropdown instance<br>';
+            } catch (error) {
+                output.innerHTML += `Failed to create Bootstrap dropdown: ${error.message}<br>`;
+            }
+        }
+    }
+}
+</script>

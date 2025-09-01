@@ -51,6 +51,67 @@
     </div>
 </div>
 
+<!-- Windows Service Management -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fab fa-windows me-2"></i>Windows Service Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Service Status:</strong> <span id="serviceStatus" class="badge bg-secondary">Loading...</span></p>
+                                <p><strong>Installation Status:</strong> <span id="installationStatus" class="badge bg-secondary">Loading...</span></p>
+                                <p><strong>Administrator:</strong> <span id="adminStatus" class="badge bg-secondary">Loading...</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Service Name:</strong> <span id="serviceName">FraudDetectorWebApp</span></p>
+                                <p><strong>Display Name:</strong> <span id="serviceDisplayName">Loading...</span></p>
+                                <p><strong>Start Type:</strong> <span id="serviceStartType">Loading...</span></p>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Installing as a Windows Service allows the application to run automatically in the background and provides live data updates to the reports page.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-grid gap-2">
+                            <button id="installServiceBtn" class="btn btn-success" onclick="installService()" disabled>
+                                <i class="fas fa-download me-1"></i> Install Service
+                            </button>
+                            <button id="uninstallServiceBtn" class="btn btn-danger" onclick="uninstallService()" disabled>
+                                <i class="fas fa-trash me-1"></i> Uninstall Service
+                            </button>
+                            <div class="btn-group w-100">
+                                <button id="startServiceBtn" class="btn btn-outline-success" onclick="startService()" disabled>
+                                    <i class="fas fa-play me-1"></i> Start
+                                </button>
+                                <button id="stopServiceBtn" class="btn btn-outline-danger" onclick="stopService()" disabled>
+                                    <i class="fas fa-stop me-1"></i> Stop
+                                </button>
+                                <button id="restartServiceBtn" class="btn btn-outline-warning" onclick="restartService()" disabled>
+                                    <i class="fas fa-redo me-1"></i> Restart
+                                </button>
+                            </div>
+                            <button class="btn btn-outline-info" onclick="viewServiceLogs()">
+                                <i class="fas fa-file-alt me-1"></i> View Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Configuration List -->
 <div class="card shadow-sm">
     <div class="card-header">
@@ -186,10 +247,12 @@
     document.addEventListener('DOMContentLoaded', function() {
         loadSystemStatus();
         loadConfigurations();
+        loadServiceStatus();
         
         // Setup periodic refresh
         setInterval(loadSystemStatus, 5000); // Every 5 seconds
         setInterval(loadConfigurations, 10000); // Every 10 seconds
+        setInterval(loadServiceStatus, 10000); // Every 10 seconds
     });
 
     // Load system status
@@ -596,5 +659,240 @@
     function showError(message) { showToast(message, 'danger'); }
     function showWarning(message) { showToast(message, 'warning'); }
     function showInfo(message) { showToast(message, 'info'); }
+
+    // ===== WINDOWS SERVICE MANAGEMENT FUNCTIONS =====
+    
+    // Load service status
+    async function loadServiceStatus() {
+        try {
+            const response = await fetch('/api/service/status');
+            if (response.ok) {
+                const data = await response.json();
+                updateServiceStatusUI(data);
+            }
+        } catch (error) {
+            console.error('Error loading service status:', error);
+            setServiceStatusError();
+        }
+    }
+    
+    // Update service status UI
+    function updateServiceStatusUI(data) {
+        const service = data.service;
+        const system = data.system;
+        
+        // Update status badges
+        document.getElementById('serviceStatus').textContent = service.status || 'Unknown';
+        document.getElementById('serviceStatus').className = `badge bg-${getStatusColor(service.status)}`;
+        
+        document.getElementById('installationStatus').textContent = service.isInstalled ? 'Installed' : 'Not Installed';
+        document.getElementById('installationStatus').className = `badge bg-${service.isInstalled ? 'success' : 'secondary'}`;
+        
+        document.getElementById('adminStatus').textContent = system.isAdministrator ? 'Yes' : 'No';
+        document.getElementById('adminStatus').className = `badge bg-${system.isAdministrator ? 'success' : 'warning'}`;
+        
+        // Update service details
+        document.getElementById('serviceDisplayName').textContent = service.displayName || 'N/A';
+        document.getElementById('serviceStartType').textContent = service.startType || 'N/A';
+        
+        // Update button states
+        const installBtn = document.getElementById('installServiceBtn');
+        const uninstallBtn = document.getElementById('uninstallServiceBtn');
+        const startBtn = document.getElementById('startServiceBtn');
+        const stopBtn = document.getElementById('stopServiceBtn');
+        const restartBtn = document.getElementById('restartServiceBtn');
+        
+        // Enable/disable buttons based on status
+        installBtn.disabled = service.isInstalled || !system.isAdministrator;
+        uninstallBtn.disabled = !service.isInstalled || !system.isAdministrator;
+        startBtn.disabled = !service.isInstalled || !service.canStart;
+        stopBtn.disabled = !service.isInstalled || !service.canStop;
+        restartBtn.disabled = !service.isInstalled || (!service.canStop && !service.canStart);
+        
+        // Update button text based on admin status
+        if (!system.isAdministrator) {
+            installBtn.innerHTML = '<i class="fas fa-shield-alt me-1"></i> Run as Admin Required';
+            uninstallBtn.innerHTML = '<i class="fas fa-shield-alt me-1"></i> Run as Admin Required';
+        } else {
+            installBtn.innerHTML = '<i class="fas fa-download me-1"></i> Install Service';
+            uninstallBtn.innerHTML = '<i class="fas fa-trash me-1"></i> Uninstall Service';
+        }
+    }
+    
+    // Set service status to error state
+    function setServiceStatusError() {
+        document.getElementById('serviceStatus').textContent = 'Error';
+        document.getElementById('serviceStatus').className = 'badge bg-danger';
+        document.getElementById('installationStatus').textContent = 'Unknown';
+        document.getElementById('installationStatus').className = 'badge bg-secondary';
+        document.getElementById('adminStatus').textContent = 'Unknown';
+        document.getElementById('adminStatus').className = 'badge bg-secondary';
+    }
+    
+    // Get status color for badges
+    function getStatusColor(status) {
+        switch (status?.toLowerCase()) {
+            case 'running': return 'success';
+            case 'stopped': return 'secondary';
+            case 'starting': case 'stopping': return 'warning';
+            case 'error': case 'not installed': return 'danger';
+            default: return 'secondary';
+        }
+    }
+    
+    // Install Windows Service
+    async function installService() {
+        if (!confirm('Install the application as a Windows Service? This will allow it to run automatically in the background.')) {
+            return;
+        }
+        
+        showInfo('Installing Windows Service...');
+        
+        try {
+            const response = await fetch('/api/service/install', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccess('Windows Service installed successfully!');
+                loadServiceStatus();
+            } else {
+                if (result.requiresElevation) {
+                    showError('Administrator privileges required. Please run the application as Administrator.');
+                } else if (result.isAlreadyInstalled) {
+                    showWarning('Service is already installed.');
+                } else {
+                    showError('Failed to install service: ' + result.message);
+                }
+            }
+        } catch (error) {
+            showError('Error installing service: ' + error.message);
+        }
+    }
+    
+    // Uninstall Windows Service
+    async function uninstallService() {
+        if (!confirm('Uninstall the Windows Service? This will stop the service and remove it from the system.')) {
+            return;
+        }
+        
+        showInfo('Uninstalling Windows Service...');
+        
+        try {
+            const response = await fetch('/api/service/uninstall', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccess('Windows Service uninstalled successfully!');
+                loadServiceStatus();
+            } else {
+                if (result.requiresElevation) {
+                    showError('Administrator privileges required. Please run the application as Administrator.');
+                } else {
+                    showError('Failed to uninstall service: ' + result.message);
+                }
+            }
+        } catch (error) {
+            showError('Error uninstalling service: ' + error.message);
+        }
+    }
+    
+    // Start Windows Service
+    async function startService() {
+        showInfo('Starting Windows Service...');
+        
+        try {
+            const response = await fetch('/api/service/start', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccess('Windows Service started successfully!');
+                loadServiceStatus();
+            } else {
+                showError('Failed to start service: ' + result.message);
+            }
+        } catch (error) {
+            showError('Error starting service: ' + error.message);
+        }
+    }
+    
+    // Stop Windows Service
+    async function stopService() {
+        if (!confirm('Stop the Windows Service? This will stop all background processing.')) {
+            return;
+        }
+        
+        showInfo('Stopping Windows Service...');
+        
+        try {
+            const response = await fetch('/api/service/stop', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccess('Windows Service stopped successfully!');
+                loadServiceStatus();
+            } else {
+                showError('Failed to stop service: ' + result.message);
+            }
+        } catch (error) {
+            showError('Error stopping service: ' + error.message);
+        }
+    }
+    
+    // Restart Windows Service
+    async function restartService() {
+        if (!confirm('Restart the Windows Service? This will stop and start the service.')) {
+            return;
+        }
+        
+        showInfo('Restarting Windows Service...');
+        
+        try {
+            const response = await fetch('/api/service/restart', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccess('Windows Service restarted successfully!');
+                loadServiceStatus();
+            } else {
+                showError('Failed to restart service: ' + result.message);
+            }
+        } catch (error) {
+            showError('Error restarting service: ' + error.message);
+        }
+    }
+    
+    // View service logs
+    async function viewServiceLogs() {
+        showInfo('Loading service logs...');
+        
+        try {
+            const response = await fetch('/api/service/logs');
+            const result = await response.json();
+            
+            if (result.logs && result.logs.length > 0) {
+                // Create a simple log viewer modal
+                let logContent = result.logs.map(log => 
+                    `<h6>${log.fileName} (${new Date(log.lastModified).toLocaleString()})</h6>
+                     <pre class="bg-dark text-light p-3" style="max-height: 200px; overflow-y: auto;">${log.lines.join('\n')}</pre>`
+                ).join('<hr>');
+                
+                // Show logs in a simple alert (in a real app, you'd use a proper modal)
+                const logWindow = window.open('', '_blank', 'width=800,height=600');
+                logWindow.document.write(`
+                    <html><head><title>Service Logs</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                    </head><body class="p-4">
+                    <h3>Service Logs</h3>
+                    ${logContent}
+                    </body></html>
+                `);
+                logWindow.document.close();
+            } else {
+                showInfo(result.message || 'No log files found');
+            }
+        } catch (error) {
+            showError('Error loading logs: ' + error.message);
+        }
+    }
 </script>
 }

@@ -7,7 +7,10 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure enhanced logging
+// Configure Windows Service support
+builder.Host.UseWindowsService();
+
+// Add services to the container.
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -88,6 +91,10 @@ builder.Services.AddHttpClient();
 // Add background service as singleton
 builder.Services.AddSingleton<ApiRequestService>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<ApiRequestService>());
+
+// Add Windows Service related services
+builder.Services.AddSingleton<WindowsServiceInstaller>();
+builder.Services.AddHostedService<LiveDataService>();
 
 // Add CORS for API calls from frontend and SignalR
 builder.Services.AddCors(options =>

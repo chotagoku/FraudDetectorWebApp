@@ -362,6 +362,7 @@
         }
     </script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/dropdown-fix.js" asp-append-version="true"></script>
     
     <script>
         // Enhanced navbar functionality
@@ -375,22 +376,6 @@
         
         // Initialize Bootstrap components
         function initializeBootstrap() {
-            // Initialize all dropdowns
-            const dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]');
-            dropdownElements.forEach(element => {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-                    new bootstrap.Dropdown(element);
-                }
-            });
-            
-            // Initialize all modals
-            const modalElements = document.querySelectorAll('.modal');
-            modalElements.forEach(element => {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    new bootstrap.Modal(element);
-                }
-            });
-            
             // DISABLE tooltips to prevent hover issues
             // Remove tooltip attributes that cause text readability problems
             const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"], [data-toggle="tooltip"], [title]');

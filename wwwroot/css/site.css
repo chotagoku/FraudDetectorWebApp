@@ -74,6 +74,58 @@ table tbody tr:hover code {
   color: inherit !important;
 }
 
+/* Global font color contrast fixes */
+.card {
+  color: #212529 !important;
+}
+
+.card-header,
+.card-body,
+.card-footer {
+  color: #212529 !important;
+}
+
+/* Ensure badges have proper contrast */
+.badge.bg-light {
+  background-color: #f8f9fa !important;
+  color: #212529 !important;
+  border: 1px solid #dee2e6;
+}
+
+/* Fix any problematic white text */
+.text-muted {
+  color: #6c757d !important;
+}
+
+/* Ensure form labels are readable */
+.form-label,
+label {
+  color: #212529 !important;
+  font-weight: 600;
+}
+
+/* Ensure proper text color in all contexts */
+.card-title,
+.card-text,
+h1, h2, h3, h4, h5, h6 {
+  color: inherit !important;
+}
+
+/* Override any Bootstrap issues with light backgrounds */
+.bg-light {
+  color: #212529 !important;
+}
+
+/* Ensure readability in chart containers */
+.chart-container,
+.chart-container * {
+  color: #212529 !important;
+}
+
+.chart-container .badge {
+  color: inherit !important;
+}
+
 /* Disable problematic Bootstrap tooltips globally */
 .tooltip {
   display: none !important;
